@@ -11,6 +11,9 @@ services:
       - ./db/init:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
+    networks:
+      aquapulse_net:
+        ipv4_address: 172.28.0.2  
 
   grafana:
     image: grafana/grafana:latest
@@ -21,14 +24,31 @@ services:
       - "3000:3000"
     depends_on:
       - db
+    networks:
+      aquapulse_net:
 
   collector:
-    build: ./collector
+    image: aquapulse-collector 
+    # build: ./collector
+    container_name: aquapulse_collector
     restart: always
+    network_mode: host 
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-      DB_HOST: db
+      DB_HOST: 127.0.0.1 
+      TAPO_USERNAME: ${TAPO_USERNAME}
+      TAPO_PASSWORD: ${TAPO_PASSWORD}
+      TAPO_HUB_IP: ${TAPO_HUB_IP}
+      SOURCES: ${SOURCES:-${SOURCE:-mock}}
+      SAMPLE_INTERVAL: ${SAMPLE_INTERVAL:-}
     depends_on:
       - db
+      
+networks:
+  aquapulse_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
