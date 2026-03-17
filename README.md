@@ -8,6 +8,8 @@
 
 **Goal**: Quantify how factors like temperature changes, lighting schedules, and water changes affect water quality using causal inference, and predict "when to do water changes" in a data-driven way.
 
+![Grafana Dashboard](docs/images/dashboard.png)
+
 In business terms: **Risk Management** (minimize volatility), **Cost Optimization** (reduce maintenance effort), and **SLA Improvement** (anomaly detection & rapid response).
 
 ## Current Status
