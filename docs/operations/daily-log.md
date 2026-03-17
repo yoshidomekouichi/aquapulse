@@ -11,10 +11,25 @@
   - systemd サービス `grafana-kiosk.service` で自動起動
   - 匿名アクセス設定（`GF_AUTH_ANONYMOUS_ENABLED`）で認証スキップ
 
+- **ops_metrics（システム監視）の追加**
+  - `db/migrations/002_ops_metrics.sql` - 新テーブル追加
+  - `collector/src/sources/system_stats.py` - CPU/メモリ/ディスク/温度を収集
+  - `collector/src/main.py` - 収集ヘルス計測を統合（duration_ms, success）
+  - `grafana/dashboards/aquapulse-operations.json` - Ops ダッシュボード作成
+
+- **ダッシュボードの分離（PC用 / Display用）**
+  - `aquapulse-pc.json` - 13インチMacBook向け、6つのStats + 詳細グラフ
+  - `aquapulse-display.json` - 7インチTouch Display向け、4つのStats + コンパクトグラフ
+  - 800x480 でスクロールなしで一覧できるレイアウトに最適化
+
 - **ドキュメント整理**
   - `docs/display/` フォルダを新規作成、キオスク関連を集約
   - TUI 関連ドキュメントを `docs/archive/tui/` に移動（廃止のため）
   - `docs/README.md` を更新、ナビゲーション改善
+
+- **README 画像の更新**
+  - PC用 / Display用 の2カラム表示に変更
+  - `docs/images/dashboard-pc.png`, `dashboard-display.png` を追加
 
 - **輝度制御スクリプトの作成**
   - `kiosk/brightness.sh` - 手動輝度調整
@@ -27,6 +42,18 @@
   - Grafana の Tapo_Tank_Light パネルを正しい sensor_id に修正
 
 ### インフラ・トラブル対応
+
+- **新ダッシュボードで "Failed to load dashboard forbidden"**
+  - 原因: `GF_AUTH_ANONYMOUS_ENABLED=true` でも、ダッシュボード個別のパーミッションが未設定だった
+  - 旧ダッシュボード（adsbdzn）には Viewer ロールが設定済み、新ダッシュボードは `[]`（空）
+  - 解決: Grafana API でパーミッションを追加
+    ```bash
+    curl -X POST -u admin:admin \
+      -H "Content-Type: application/json" \
+      "http://localhost:3000/api/dashboards/uid/aquapulse-display/permissions" \
+      -d '{"items":[{"role":"Viewer","permission":1},{"role":"Editor","permission":2}]}'
+    ```
+  - トラブルシューティングを `docs/display/grafana-kiosk.md` に追記
 
 - **SSD 移行後の Remote SSH 接続失敗**
   - シンボリックリンク（`~/.vscode-server`, `~/.cursor-server`）が旧パス `/mnt/ssd/...` を指していた
@@ -45,7 +72,6 @@
 
 - [ ] I2C 問題調査（リボンケーブル抜き差し、別ポート試行）
 - [ ] イベント記録システム（餌やり、水替え等）の設計・実装
-- [ ] キオスク用ダッシュボードのデザイン最適化
 
 ---
 
