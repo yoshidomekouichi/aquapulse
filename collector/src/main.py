@@ -1,3 +1,4 @@
+import datetime
 import os
 import sys
 import time
@@ -9,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import psycopg2
 
-from db.writer import save_reading
+from db.writer import save_reading, save_ops_metric, save_ops_metrics_batch
 
 SOURCES_RAW = os.getenv("SOURCES", os.getenv("SOURCE", "mock"))
 SOURCES = [s.strip() for s in SOURCES_RAW.split(",") if s.strip()]
@@ -48,6 +49,10 @@ SAMPLE_INTERVAL = int(os.getenv("SAMPLE_INTERVAL") or str(DEFAULT_INTERVAL))
 GPIO_TEMP_INTERVAL = int(os.getenv("GPIO_TEMP_INTERVAL") or "60")
 # gpio_tds も独立ループ（環境変数で上書き可、デフォルト 60 秒。テスト時は 10 等に短縮可）
 TDS_INTERVAL = int(os.getenv("TDS_INTERVAL") or "60")
+# システムメトリクス収集間隔（デフォルト 60 秒）
+SYSTEM_STATS_INTERVAL = int(os.getenv("SYSTEM_STATS_INTERVAL") or "60")
+# ops_metrics 収集を有効にするか
+OPS_METRICS_ENABLED = os.getenv("OPS_METRICS_ENABLED", "true").lower() in ("true", "1", "yes")
 
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "172.28.0.2"),
@@ -69,6 +74,73 @@ def connect_db():
             time.sleep(retry_delay)
     print("Could not connect to DB. Exiting.")
     raise SystemExit(1)
+
+
+def collect_with_health(name, get_readings_fn, conn, ops_conn=None):
+    """
+    ソースからデータを収集し、ヘルスメトリクスも記録する。
+    Returns: (readings, health_metrics)
+    """
+    now = datetime.datetime.now(datetime.timezone.utc)
+    host = os.getenv("HOSTNAME", "raspi5")
+    health_metrics = []
+    
+    start_time = time.perf_counter()
+    try:
+        readings = get_readings_fn()
+        duration_ms = (time.perf_counter() - start_time) * 1000
+        
+        # 成功
+        health_metrics.append({
+            "time": now,
+            "host": host,
+            "category": "collector",
+            "metric": "collection_success",
+            "source": name,
+            "value": 1.0,
+        })
+        health_metrics.append({
+            "time": now,
+            "host": host,
+            "category": "collector",
+            "metric": "collection_duration_ms",
+            "source": name,
+            "value": round(duration_ms, 2),
+        })
+        health_metrics.append({
+            "time": now,
+            "host": host,
+            "category": "collector",
+            "metric": "readings_count",
+            "source": name,
+            "value": float(len(readings)),
+        })
+        
+        return readings, health_metrics
+        
+    except Exception as e:
+        duration_ms = (time.perf_counter() - start_time) * 1000
+        print(f"[{name}] Failed: {e}", flush=True)
+        
+        # 失敗
+        health_metrics.append({
+            "time": now,
+            "host": host,
+            "category": "collector",
+            "metric": "collection_success",
+            "source": name,
+            "value": 0.0,
+        })
+        health_metrics.append({
+            "time": now,
+            "host": host,
+            "category": "collector",
+            "metric": "collection_duration_ms",
+            "source": name,
+            "value": round(duration_ms, 2),
+        })
+        
+        return [], health_metrics
 
 
 def _gpio_temp_loop(stop_event):
@@ -117,6 +189,29 @@ def _gpio_tds_loop(stop_event):
         conn.close()
 
 
+def _system_stats_loop(stop_event):
+    """
+    システムメトリクス（CPU, メモリ, ディスク, 温度）を収集する独立スレッド。
+    """
+    if not OPS_METRICS_ENABLED:
+        return
+    
+    from sources.system_stats import get_metrics
+    
+    conn = connect_db()
+    try:
+        while not stop_event.is_set():
+            try:
+                metrics = get_metrics()
+                for m in metrics:
+                    save_ops_metric(conn, m)
+            except Exception as e:
+                print(f"[system_stats] Failed: {e}", flush=True)
+            stop_event.wait(SYSTEM_STATS_INTERVAL)
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     # gpio_temp, gpio_tds 以外のソース（Tapo 等）
     other_sources = {k: v for k, v in SOURCE_LOADERS.items() if k not in ("gpio_temp", "gpio_tds")}
@@ -124,39 +219,65 @@ if __name__ == "__main__":
         other_sources = {"mock": SOURCE_LOADERS.get("mock", lambda: [])}
 
     print(f"--- AquaPulse Collector {SOURCES} (Tapo: {SAMPLE_INTERVAL}s, GPIO temp: {GPIO_TEMP_INTERVAL}s, TDS: {TDS_INTERVAL}s) ---")
+    if OPS_METRICS_ENABLED:
+        print(f"Ops metrics enabled (system stats: {SYSTEM_STATS_INTERVAL}s interval)")
     conn = connect_db()
+    ops_conn = connect_db() if OPS_METRICS_ENABLED else None
     print("Connected to DB.")
 
     stop_event = threading.Event()
-    gpio_temp_thread = None
-    gpio_tds_thread = None
+    threads = []
+    
     if "gpio_temp" in SOURCES:
-        gpio_temp_thread = threading.Thread(target=_gpio_temp_loop, args=(stop_event,), daemon=True)
-        gpio_temp_thread.start()
+        t = threading.Thread(target=_gpio_temp_loop, args=(stop_event,), daemon=True)
+        t.start()
+        threads.append(("gpio_temp", t, GPIO_TEMP_INTERVAL))
         print(f"GPIO temp loop started ({GPIO_TEMP_INTERVAL}s interval).")
+    
     if "gpio_tds" in SOURCES:
-        gpio_tds_thread = threading.Thread(target=_gpio_tds_loop, args=(stop_event,), daemon=True)
-        gpio_tds_thread.start()
+        t = threading.Thread(target=_gpio_tds_loop, args=(stop_event,), daemon=True)
+        t.start()
+        threads.append(("gpio_tds", t, TDS_INTERVAL))
         print(f"GPIO TDS loop started ({TDS_INTERVAL}s interval).")
+    
+    if OPS_METRICS_ENABLED:
+        t = threading.Thread(target=_system_stats_loop, args=(stop_event,), daemon=True)
+        t.start()
+        threads.append(("system_stats", t, SYSTEM_STATS_INTERVAL))
+        print(f"System stats loop started ({SYSTEM_STATS_INTERVAL}s interval).")
 
     try:
         while True:
-            readings = []
+            all_readings = []
+            all_health = []
+            
             for name, get_readings_fn in other_sources.items():
-                try:
-                    readings.extend(get_readings_fn())
-                except Exception as e:
-                    print(f"[{name}] Failed: {e}", flush=True)
-            for r in readings:
+                if OPS_METRICS_ENABLED:
+                    readings, health = collect_with_health(name, get_readings_fn, conn, ops_conn)
+                    all_readings.extend(readings)
+                    all_health.extend(health)
+                else:
+                    try:
+                        all_readings.extend(get_readings_fn())
+                    except Exception as e:
+                        print(f"[{name}] Failed: {e}", flush=True)
+            
+            # センサーデータ保存
+            for r in all_readings:
                 save_reading(conn, r)
                 print(json.dumps({k: str(v) if hasattr(v, "isoformat") else v for k, v in r.items()}, ensure_ascii=False))
+            
+            # ヘルスメトリクス保存
+            if OPS_METRICS_ENABLED and all_health and ops_conn:
+                save_ops_metrics_batch(ops_conn, all_health)
+            
             time.sleep(SAMPLE_INTERVAL)
     except KeyboardInterrupt:
         print("\n--- Stopped by User ---")
     finally:
         stop_event.set()
-        if gpio_temp_thread:
-            gpio_temp_thread.join(timeout=GPIO_TEMP_INTERVAL + 2)
-        if gpio_tds_thread:
-            gpio_tds_thread.join(timeout=TDS_INTERVAL + 2)
+        for name, thread, interval in threads:
+            thread.join(timeout=interval + 2)
         conn.close()
+        if ops_conn:
+            ops_conn.close()
