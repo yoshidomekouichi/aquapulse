@@ -6,11 +6,11 @@
 
 ## What's this?
 
-**Goal**: Quantify how factors like temperature changes, lighting schedules, and water changes affect water quality using causal inference, and predict "when to do water changes" in a data-driven way.
+**Goal**: Keep fish healthy and plants thriving by maintaining optimal water conditions — using data, not guesswork.
+
+Collecting environmental data (water temp, room temp, humidity, lighting) and applying causal inference to understand what actually affects water quality and when to intervene.
 
 ![Grafana Dashboard](docs/images/dashboard.png)
-
-In business terms: **Risk Management** (minimize volatility), **Cost Optimization** (reduce maintenance effort), and **SLA Improvement** (anomaly detection & rapid response).
 
 ## Current Status
 
