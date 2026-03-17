@@ -12,7 +12,11 @@
 
 **リスク管理**（ボラティリティ最小化） / **コスト最適化**（作業工数削減） / **SLA 向上**（異常検知・即時対応）
 
-![Grafana Dashboard](docs/images/dashboard.png)
+### ダッシュボード
+
+| PC版（詳細分析） | 7インチディスプレイ（一目で確認） |
+|:----------------:|:---------------------------------:|
+| ![PC Dashboard](docs/images/dashboard-pc.png) | ![Display Dashboard](docs/images/dashboard-display.png) |
 
 ## Current Status
 

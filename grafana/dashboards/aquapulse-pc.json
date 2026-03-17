@@ -1,0 +1,137 @@
+{
+  "annotations": { "list": [{ "builtIn": 1, "datasource": { "type": "grafana", "uid": "-- Grafana --" }, "enable": true, "hide": true, "iconColor": "rgba(0, 211, 255, 1)", "name": "Annotations & Alerts", "type": "dashboard" }] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "postgres", "uid": "aquapulse_mock" },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }, { "color": "green", "value": 25 }, { "color": "yellow", "value": 27 }, { "color": "red", "value": 28 }] }, "unit": "celsius" }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "value_and_name" },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "aquapulse_mock" }, "editorMode": "code", "format": "table", "rawQuery": true, "rawSql": "SELECT value FROM sensor_readings WHERE sensor_id LIKE 'ds18b20%' AND metric = 'temperature' ORDER BY time DESC LIMIT 1", "refId": "A" }],
+      "title": "🌡️ 水温",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "aquapulse_mock" },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }, { "color": "green", "value": 18 }, { "color": "orange", "value": 28 }] }, "unit": "celsius" }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "id": 2,
+      "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "value_and_name" },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "aquapulse_mock" }, "editorMode": "code", "format": "table", "rawQuery": true, "rawSql": "SELECT value FROM sensor_readings WHERE sensor_id LIKE 'tapo_%' AND metric = 'temperature' ORDER BY time DESC LIMIT 1", "refId": "A" }],
+      "title": "🏠 室温",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "aquapulse_mock" },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }, { "color": "green", "value": 40 }, { "color": "blue", "value": 70 }] }, "unit": "percent" }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "id": 3,
+      "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "value_and_name" },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "aquapulse_mock" }, "editorMode": "code", "format": "table", "rawQuery": true, "rawSql": "SELECT value FROM sensor_readings WHERE sensor_id LIKE 'tapo_%' AND metric = 'humidity' ORDER BY time DESC LIMIT 1", "refId": "A" }],
+      "title": "💧 湿度",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "aquapulse_mock" },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [{ "options": { "0": { "color": "dark-gray", "index": 0, "text": "💤 OFF" }, "1": { "color": "yellow", "index": 1, "text": "☀️ ON" } }, "type": "value" }], "thresholds": { "mode": "absolute", "steps": [{ "color": "text", "value": null }] } }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "id": 4,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "aquapulse_mock" }, "editorMode": "code", "format": "table", "rawQuery": true, "rawSql": "SELECT value FROM sensor_readings WHERE sensor_id LIKE 'tapo_lighting_%00' AND metric = 'power_state' ORDER BY time DESC LIMIT 1", "refId": "A" }],
+      "title": "💡 照明",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "aquapulse_mock" },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "decimals": 2, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 0.5 }, { "color": "red", "value": 1.0 }] }, "unit": "celsius" }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "id": 5,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "value_and_name" },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "aquapulse_mock" }, "editorMode": "code", "format": "table", "rawQuery": true, "rawSql": "SELECT MAX(value) - MIN(value) as value FROM sensor_readings WHERE sensor_id LIKE 'ds18b20%' AND metric = 'temperature' AND time > NOW() - INTERVAL '24 hours'", "refId": "A" }],
+      "title": "📊 日較差",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "aquapulse_mock" },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "decimals": 1, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 60 }, { "color": "green", "value": 80 }] }, "unit": "percent" }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "id": 6,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "value_and_name" },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "aquapulse_mock" }, "editorMode": "code", "format": "table", "rawQuery": true, "rawSql": "SELECT ROUND(COUNT(*) FILTER (WHERE value BETWEEN 25 AND 28) * 100.0 / NULLIF(COUNT(*), 0), 1) as value FROM sensor_readings WHERE sensor_id LIKE 'ds18b20%' AND metric = 'temperature' AND time > NOW() - INTERVAL '24 hours'", "refId": "A" }],
+      "title": "🎯 適正率",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "aquapulse_mock" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisCenteredZero": false, "axisColorMode": "text", "axisPlacement": "auto", "drawStyle": "line", "fillOpacity": 0, "gradientMode": "none", "hideFrom": { "legend": false, "tooltip": false, "viz": false }, "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5, "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": false, "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "area" } }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "transparent", "value": null }, { "color": "rgba(80, 200, 120, 0.15)", "value": 25 }, { "color": "rgba(255, 100, 100, 0.15)", "value": 28 }] }, "unit": "celsius" }, "overrides": [{ "matcher": { "id": "byName", "options": "15分平均" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }, { "id": "custom.lineWidth", "value": 3 }] }] },
+      "gridPos": { "h": 7, "w": 16, "x": 0, "y": 4 },
+      "id": 7,
+      "options": { "legend": { "calcs": ["mean", "min", "max"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "datasource": { "type": "postgres", "uid": "aquapulse_mock" }, "editorMode": "code", "format": "time_series", "rawQuery": true, "rawSql": "SELECT time, value as \"水温\" FROM sensor_readings WHERE sensor_id LIKE 'ds18b20%' AND metric = 'temperature' AND $__timeFilter(time) ORDER BY time", "refId": "A" },
+        { "datasource": { "type": "postgres", "uid": "aquapulse_mock" }, "editorMode": "code", "format": "time_series", "rawQuery": true, "rawSql": "SELECT time, AVG(value) OVER (ORDER BY time ROWS BETWEEN 14 PRECEDING AND CURRENT ROW) as \"15分平均\" FROM sensor_readings WHERE sensor_id LIKE 'ds18b20%' AND metric = 'temperature' AND $__timeFilter(time) ORDER BY time", "refId": "B" }
+      ],
+      "title": "🌡️ 水温 + 移動平均",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "aquapulse_mock" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic-by-name" }, "custom": { "fillOpacity": 80, "gradientMode": "none", "hideFrom": { "legend": false, "tooltip": false, "viz": false }, "lineWidth": 1, "stacking": { "group": "A", "mode": "none" } }, "mappings": [], "max": 28, "min": 25, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 4 },
+      "id": 8,
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false }, "tooltip": { "mode": "single", "sort": "none" } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "aquapulse_mock" }, "editorMode": "code", "format": "table", "rawQuery": true, "rawSql": "SELECT time, value FROM sensor_readings WHERE sensor_id LIKE 'ds18b20%' AND metric = 'temperature' AND $__timeFilter(time) ORDER BY time", "refId": "A" }],
+      "title": "📊 水温分布",
+      "type": "histogram"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "aquapulse_mock" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisCenteredZero": false, "axisColorMode": "text", "axisPlacement": "auto", "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": { "legend": false, "tooltip": false, "viz": false }, "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5, "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": 3600000, "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" } }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }, "unit": "celsius" }, "overrides": [{ "matcher": { "id": "byName", "options": "水温" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] }, { "matcher": { "id": "byName", "options": "室温" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }, { "id": "custom.axisPlacement", "value": "right" }] }] },
+      "gridPos": { "h": 5, "w": 12, "x": 0, "y": 11 },
+      "id": 9,
+      "options": { "legend": { "calcs": ["mean"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "datasource": { "type": "postgres", "uid": "aquapulse_mock" }, "editorMode": "code", "format": "time_series", "rawQuery": true, "rawSql": "SELECT time, value as \"水温\" FROM sensor_readings WHERE sensor_id LIKE 'ds18b20%' AND metric = 'temperature' AND $__timeFilter(time) ORDER BY time", "refId": "A" },
+        { "datasource": { "type": "postgres", "uid": "aquapulse_mock" }, "editorMode": "code", "format": "time_series", "rawQuery": true, "rawSql": "SELECT time, value as \"室温\" FROM sensor_readings WHERE sensor_id LIKE 'tapo_%' AND metric = 'temperature' AND $__timeFilter(time) ORDER BY time", "refId": "B" }
+      ],
+      "title": "🌡️ 水温 vs 室温",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "aquapulse_mock" },
+      "fieldConfig": { "defaults": { "color": { "mode": "continuous-GrYlRd" }, "custom": { "axisCenteredZero": false, "axisColorMode": "text", "axisPlacement": "auto", "drawStyle": "line", "fillOpacity": 20, "gradientMode": "scheme", "hideFrom": { "legend": false, "tooltip": false, "viz": false }, "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5, "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": 3600000, "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" } }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }, "unit": "percent" }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 11 },
+      "id": 10,
+      "options": { "legend": { "calcs": [], "displayMode": "hidden", "placement": "bottom", "showLegend": false }, "tooltip": { "mode": "single", "sort": "none" } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "aquapulse_mock" }, "editorMode": "code", "format": "time_series", "rawQuery": true, "rawSql": "SELECT time, value FROM sensor_readings WHERE sensor_id LIKE 'tapo_%' AND metric = 'humidity' AND $__timeFilter(time) ORDER BY time", "refId": "A" }],
+      "title": "💧 湿度",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "aquapulse_mock" },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "custom": { "fillOpacity": 80, "gradientMode": "none", "hideFrom": { "legend": false, "tooltip": false, "viz": false }, "lineWidth": 1 }, "mappings": [{ "options": { "0": { "color": "#1a2455", "index": 1, "text": "OFF" }, "1": { "color": "#efd427", "index": 0, "text": "ON" } }, "type": "value" }], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 11 },
+      "id": 11,
+      "options": { "colWidth": 0.9, "legend": { "displayMode": "hidden", "placement": "bottom", "showLegend": false }, "rowHeight": 0.9, "showValue": "auto", "tooltip": { "mode": "single", "sort": "none" } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "aquapulse_mock" }, "editorMode": "code", "format": "time_series", "rawQuery": true, "rawSql": "SELECT time, value FROM sensor_readings WHERE sensor_id LIKE 'tapo_lighting_%00' AND metric = 'power_state' AND $__timeFilter(time) ORDER BY time", "refId": "A" }],
+      "title": "💡 照明スケジュール",
+      "type": "state-timeline"
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["aquarium", "pc"],
+  "templating": { "list": [] },
+  "time": { "from": "now-24h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "AquaPulse PC",
+  "uid": "aquapulse-pc",
+  "version": 1,
+  "weekStart": ""
+}

@@ -12,7 +12,11 @@ Collecting environmental data (water temp, room temp, humidity, lighting) and ap
 
 **Risk Management** (minimize volatility) / **Cost Optimization** (reduce maintenance effort) / **SLA Improvement** (anomaly detection & rapid response)
 
-![Grafana Dashboard](docs/images/dashboard.png)
+### Dashboard Views
+
+| PC (Full Analytics) | 7" Touch Display (At-a-Glance) |
+|:-------------------:|:------------------------------:|
+| ![PC Dashboard](docs/images/dashboard-pc.png) | ![Display Dashboard](docs/images/dashboard-display.png) |
 
 ## Current Status
 

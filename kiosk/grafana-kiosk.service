@@ -13,7 +13,7 @@ Group=koichi
 Environment=XDG_RUNTIME_DIR=/run/user/1000
 Environment=WLR_LIBINPUT_NO_DEVICES=1
 # ダッシュボードURLをここで設定（?kiosk でキオスクモード）
-Environment=GRAFANA_URL=http://localhost:3000/?kiosk
+Environment=GRAFANA_URL=http://localhost:3000/d/aquapulse-display/aquapulse-display?orgId=1&kiosk&refresh=30s
 
 # cage で Chromium を起動
 # -s: スクリーンセーバー無効

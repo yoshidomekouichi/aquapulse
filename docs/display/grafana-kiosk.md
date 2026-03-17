@@ -101,7 +101,7 @@ Type=simple
 User=koichi
 Group=koichi
 Environment=XDG_RUNTIME_DIR=/run/user/1000
-Environment=GRAFANA_URL=http://localhost:3000/d/adsbdzn/aquapulse-mock?orgId=1&kiosk&refresh=1m
+Environment=GRAFANA_URL=http://localhost:3000/d/aquapulse-display/aquapulse-display?orgId=1&kiosk&refresh=30s
 ExecStart=/usr/bin/cage -s -- /projects/aquapulse/kiosk/start-kiosk.sh
 Restart=on-failure
 RestartSec=10
@@ -202,6 +202,42 @@ docker compose ps
 
 **今後の確認事項** → [既知の問題](#既知の問題) を参照
 
+### 新しいダッシュボードで "Failed to load dashboard forbidden"
+
+匿名アクセスが有効（`GF_AUTH_ANONYMOUS_ENABLED=true`）でも、**ダッシュボード個別のパーミッション**が設定されていないと forbidden になる。
+
+**診断**:
+
+```bash
+# 匿名でアクセス（forbidden になる）
+curl -s http://localhost:3000/api/dashboards/uid/YOUR_UID | head -c 100
+
+# 認証ありでパーミッション確認
+curl -s -u admin:admin "http://localhost:3000/api/dashboards/uid/YOUR_UID/permissions"
+# → [] が返ってきたらパーミッション未設定
+```
+
+**解決方法**:
+
+```bash
+# Viewer ロールに閲覧権限を追加
+curl -X POST -u admin:admin \
+  -H "Content-Type: application/json" \
+  "http://localhost:3000/api/dashboards/uid/YOUR_UID/permissions" \
+  -d '{"items":[{"role":"Viewer","permission":1},{"role":"Editor","permission":2}]}'
+
+# 確認
+curl -s http://localhost:3000/api/dashboards/uid/YOUR_UID | head -c 100
+# → {"meta": ... が返ってくれば成功
+
+# kiosk 再起動
+sudo systemctl restart grafana-kiosk
+```
+
+**補足**: GUI で設定する場合は、ダッシュボード設定 → Permissions → Add a permission for → Role: Viewer → View
+
+---
+
 ### サービスが停止している
 
 ```bash
@@ -271,4 +307,4 @@ dmesg:
 
 ---
 
-*更新日: 2026-03-17*
+*更新日: 2026-03-18*
