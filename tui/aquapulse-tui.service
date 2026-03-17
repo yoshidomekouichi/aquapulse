@@ -1,0 +1,28 @@
+[Unit]
+Description=AquaPulse TUI Dashboard
+# ブートログが落ち着いてから起動
+After=multi-user.target network-online.target cloud-init.target
+# tty1 の getty（ログインプロンプト）と競合するため停止
+Conflicts=getty@tty1.service
+After=getty@tty1.service
+
+[Service]
+Type=simple
+WorkingDirectory=/mnt/ssd/projects/aquapulse/tui
+Environment=PYTHONPATH=/mnt/ssd/projects/aquapulse/tui/packages
+Environment=PYTHONUNBUFFERED=1
+Environment=TERM=linux
+Environment=DB_HOST=127.0.0.1
+EnvironmentFile=-/mnt/ssd/projects/aquapulse/.env
+# tty1 の getty を停止
+ExecStartPre=/bin/sh -c 'systemctl stop getty@tty1.service 2>/dev/null || true'
+ExecStartPre=/usr/bin/chvt 1
+# ブートログが完全に止まるまで待ってから画面クリア
+ExecStartPre=/bin/sh -c 'sleep 15 && printf "\033[2J\033[H" >/dev/tty1'
+# script で PTY を作成して TUI を実行
+ExecStart=/bin/sh -c 'script -q -c "/usr/bin/python3 /mnt/ssd/projects/aquapulse/tui/dashboard.py" /dev/null </dev/tty1 >/dev/tty1 2>>/tmp/aquapulse-tui.log'
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

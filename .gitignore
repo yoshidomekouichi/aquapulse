@@ -15,6 +15,18 @@ venv/
 .vscode/
 .idea/
 
-# --- Data Persistence (Docker) ---
+# --- Data Persistence (Docker volumes) ---
 db_data/
 grafana_data/
+
+# --- TUI local packages ---
+tui/packages/
+tui/pip-packages/
+
+# --- Temporary files ---
+*.zip
+*.pgsql
+*.session.sql
+
+# --- Cursor IDE ---
+.cursor/

@@ -6,14 +6,20 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+      TS_TUNE_MEMORY: 512MB
     volumes:
       - ./db_data:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       aquapulse_net:
-        ipv4_address: 172.28.0.2  
+        # ipv4_address: 172.28.0.2  
 
   grafana:
     image: grafana/grafana:latest
@@ -22,17 +28,26 @@ services:
       - ./grafana_data:/var/lib/grafana
     ports:
       - "3000:3000"
+    environment:
+      # キオスク用: 匿名アクセスを許可（読み取り専用）
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_NAME: "Main Org."
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       aquapulse_net:
 
   collector:
     image: aquapulse-collector 
-    # build: ./collector
+    build: ./collector
     container_name: aquapulse_collector
     restart: always
     network_mode: host 
+    volumes:
+      - /sys/bus/w1/devices:/sys/bus/w1/devices:ro
+    # /dev/i2c-1 は gpio_tds 使用時のみ必要。未使用時は devices 指定を外す（存在しないと起動失敗）
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -41,10 +56,16 @@ services:
       TAPO_USERNAME: ${TAPO_USERNAME}
       TAPO_PASSWORD: ${TAPO_PASSWORD}
       TAPO_HUB_IP: ${TAPO_HUB_IP}
+      TAPO_LIGHTING_IP: ${TAPO_LIGHTING_IP}
+      TAPO_BACKEND: ${TAPO_BACKEND:-python-kasa}
       SOURCES: ${SOURCES:-${SOURCE:-mock}}
       SAMPLE_INTERVAL: ${SAMPLE_INTERVAL:-}
+      GPIO_TEMP_INTERVAL: ${GPIO_TEMP_INTERVAL:-1}
+      TDS_INTERVAL: ${TDS_INTERVAL:-60}
+      TDS_SENSOR_ID: ${TDS_SENSOR_ID:-}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
       
 networks:
   aquapulse_net:

@@ -1,0 +1,34 @@
+[Unit]
+Description=Grafana Kiosk Display (Wayland/Cage + Chromium)
+Documentation=file:///projects/aquapulse/docs/grafana-kiosk-setup.md
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=koichi
+Group=koichi
+
+# 環境変数
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=WLR_LIBINPUT_NO_DEVICES=1
+# ダッシュボードURLをここで設定（?kiosk でキオスクモード）
+Environment=GRAFANA_URL=http://localhost:3000/?kiosk
+
+# cage で Chromium を起動
+# -s: スクリーンセーバー無効
+# -d: DRM デバイス指定（Pi 5 環境に応じて card0 または card1）
+ExecStart=/usr/bin/cage -s -d /dev/dri/card1 -- /projects/aquapulse/kiosk/start-kiosk.sh
+
+# クラッシュ時の自動再起動
+Restart=on-failure
+RestartSec=10
+
+# TTY割り当て
+TTYPath=/dev/tty1
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -19,19 +19,21 @@ Raspberry Pi 5 をエッジデバイスとして使用し、水温・pHなどの
 - `collector/`: センサーデータ収集モジュール (Python)
 - `db/`: データベース初期化スクリプト
 - `grafana/`: 可視化設定 (Provisioning)
+- `docs/`: ドキュメント（[配線](docs/hardware/wiring/)・[運用ログ](docs/operations/daily-log.md)・[設計](docs/design/)）
 
-## 🚀 現在のステータス: Phase 0 (Mock)
+## 🚀 現在のステータス: Phase 1 (実センサー)
 - [x] プロジェクトディレクトリ構成の確立
 - [x] Remote SSH 環境の構築
-- [x] Mockデータコレクター (`src/mock_collector.py`) の動作確認
-- [ ] Dockerコンテナ化
-- [ ] DB接続
+- [x] Dockerコンテナ化・DB接続
+- [x] DS18B20 水温センサー（gpio_temp）
+- [x] TDS センサー（gpio_tds / MCP3424 CH1）
+- [ ] pH センサー（gpio_ph / MCP3424 CH2）
+- [ ] Tapo 温湿度・照明（要 Third-Party 設定）
 
-## 💻 実行方法 (開発中)
+## 💻 実行方法
 ```bash
-# 仮想環境に入る
-cd collector
-source .venv/bin/activate
+# Docker Compose で起動
+docker compose up -d
 
-# Mockデータを流す
-python src/mock_collector.py
+# SOURCES に gpio_temp,gpio_tds 等を指定（.env で設定）
+```
