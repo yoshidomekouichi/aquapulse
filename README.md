@@ -1,37 +1,41 @@
 # AquaPulse 🌊
 
-**淡水アクアリウムの環境データ収集・可視化・因果推論基盤**
+**Freshwater Aquarium IoT: Data Collection, Visualization & Causal Inference**
+
+[日本語版はこちら](README.ja.md)
 
 ## What's this?
 
-**最終目標**: 気温変化・照明・換水などの要因が水質に与える影響を因果推論で定量化し、「いつ水換えすべきか」をデータドリブンに予測すること。
+**Goal**: Quantify how factors like temperature changes, lighting schedules, and water changes affect water quality using causal inference, and predict "when to do water changes" in a data-driven way.
 
-ビジネスに翻訳すれば、**リスク管理（ボラティリティ最小化）**、**コスト最適化（作業工数削減）**、**SLA 向上（異常検知・即時対応）** の実践。
+In business terms: **Risk Management** (minimize volatility), **Cost Optimization** (reduce maintenance effort), and **SLA Improvement** (anomaly detection & rapid response).
 
 ## Current Status
 
-| 機能 | 状態 | 備考 |
-|------|------|------|
-| センサーデータ収集 | ✅ 稼働中 | 水温、室温、湿度、照明ON/OFF |
-| TimescaleDB 蓄積 | ✅ 稼働中 | 1ヶ月以上のデータ蓄積 |
-| Grafana 可視化 | ✅ 稼働中 | PC + タッチディスプレイ（キオスク） |
-| イベント記録 | ⚠️ 暫定運用 | Grafana Annotation で記録中 |
-| 因果推論モデル | 🔜 未着手 | データ蓄積後に着手予定 |
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Sensor Data Collection | ✅ Running | Water temp, room temp, humidity, lighting ON/OFF |
+| TimescaleDB Storage | ✅ Running | 1+ month of accumulated data |
+| Grafana Dashboard | ✅ Running | PC + Touch Display (kiosk mode) |
+| Event Logging | ⚠️ Interim | Using Grafana Annotations |
+| Causal Inference Model | 🔜 Planned | After sufficient data accumulation |
 
 ---
 
-| Phase | 内容 | 状態 |
-|-------|------|------|
-| **1** | センサーデータの収集・可視化 | ✅ 完了 |
-| **2** | 介入イベント（餌やり、水換え等）の記録 | ⚠️ Grafana Annotation で暫定対応中 |
-| **3** | 因果推論モデルの構築（PC側で学習） | 未着手 |
-| **4** | エッジ推論（ラズパイでリアルタイム予測） | 未着手 |
+## Roadmap
 
-> **なぜ「生体の死」を KGI にしないか**: データが疎で交絡因子が多いため、直接的な最適化には不向き。代わりに「水温のボラティリティ」「水換えインターバル」「異常滞在時間」といったプロキシ KGI を採用 → [詳細](docs/design/metrics.md)
+| Phase | Description | Status |
+|-------|-------------|--------|
+| **1** | Sensor data collection & visualization | ✅ Done |
+| **2** | Intervention events (feeding, water changes, etc.) | ⚠️ Interim solution |
+| **3** | Causal inference model (training on PC) | Not started |
+| **4** | Edge inference (real-time prediction on Raspberry Pi) | Not started |
+
+> **Why not use "fish death" as KGI?** Data is sparse and confounding factors are numerous. Instead, we use proxy KGIs: water temperature volatility, water change intervals, time in abnormal state. → [Details](docs/design/metrics.md)
 
 ---
 
-## 🏗 アーキテクチャ
+## Architecture
 
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
@@ -56,95 +60,95 @@
                     └─────────────┘
 ```
 
-**設計原則**:
-- **収集は非同期・不規則（Raw）** → センサーごとの制約に合わせた独立した間隔
-- **特徴量生成は TimescaleDB に任せる** → Continuous Aggregates, gapfill
-- **学習は PC、推論はエッジ** → 計算資源の適切な分離
-- **Point-in-Time Correctness** → 未来情報のリーク防止
+**Design Principles**:
+- **Async collection (Raw)** → Independent intervals per sensor constraints
+- **Feature generation in TimescaleDB** → Continuous Aggregates, gapfill
+- **Train on PC, infer on edge** → Proper separation of compute resources
+- **Point-in-Time Correctness** → Prevent future data leakage
 
-> 詳細: [docs/design/architecture.md](docs/design/architecture.md)
+> Details: [docs/design/architecture.md](docs/design/architecture.md)
 
 ---
 
-## 🛠 技術スタック
+## Tech Stack
 
-| 項目 | 技術 |
-|------|------|
+| Component | Technology |
+|-----------|------------|
 | Device | Raspberry Pi 5 (8GB) + NVMe SSD |
 | Display | Pi Touch Display 1 (800x480) |
 | OS | Raspberry Pi OS Lite (Bookworm, 64-bit) |
 | Language | Python 3.11+ |
 | Database | TimescaleDB (PostgreSQL) |
-| Visualization | Grafana (キオスクモード: cage + Chromium) |
+| Visualization | Grafana (kiosk mode: cage + Chromium) |
 | Infrastructure | Docker / Docker Compose |
 
 ---
 
-## 📊 データソース
+## Data Sources
 
-### センサー（ポーリング状態）
+### Sensors (Polling)
 
-| センサー | 状態 | ソース | 間隔 |
-|----------|------|--------|------|
-| DS18B20 水温 | ✅ | `gpio_temp` | 60秒 |
-| Tapo T310 温湿度 | ✅ | `tapo_sensors` | 300秒 |
-| Tapo P300 照明状態 | ✅ | `tapo_lighting` | 300秒 |
-| TDS センサー | ⚠️ 瓶測定 | `gpio_tds` | 手動 |
-| pH センサー | 🔜 | - | - |
+| Sensor | Status | Source | Interval |
+|--------|--------|--------|----------|
+| DS18B20 Water Temp | ✅ | `gpio_temp` | 60s |
+| Tapo T310 Temp/Humidity | ✅ | `tapo_sensors` | 300s |
+| Tapo P300 Lighting State | ✅ | `tapo_lighting` | 300s |
+| TDS Sensor | ⚠️ Manual | `gpio_tds` | On-demand |
+| pH Sensor | 🔜 | - | - |
 
-### イベント（将来実装）
+### Events (Planned)
 
-| イベント | 記録方法 |
-|----------|----------|
-| 餌やり | スマホから記録 |
-| 水換え | スマホから記録 |
-| 生体追加/死亡 | スマホから記録 |
+| Event | Recording Method |
+|-------|------------------|
+| Feeding | Mobile app |
+| Water Change | Mobile app |
+| Livestock Add/Death | Mobile app |
 
 ---
 
-## 📂 ディレクトリ構成
+## Directory Structure
 
 ```
 aquapulse/
-├── collector/       # センサーデータ収集モジュール
-├── db/              # データベース初期化・マイグレーション
-├── grafana/         # Grafana 設定
-├── kiosk/           # キオスクモード設定スクリプト
+├── collector/       # Sensor data collection module
+├── db/              # Database init & migrations
+├── grafana/         # Grafana configuration
+├── kiosk/           # Kiosk mode scripts
 └── docs/
-    ├── display/     # ディスプレイ・キオスク設定
-    ├── hardware/    # 配線・センサー
-    ├── operations/  # 運用ログ
-    └── design/      # 設計・アーキテクチャ
+    ├── display/     # Display & kiosk setup
+    ├── hardware/    # Wiring & sensors
+    ├── operations/  # Operation logs
+    └── design/      # Architecture & design
 ```
 
 ---
 
-## 💻 クイックスタート
+## Quick Start
 
 ```bash
-# Docker Compose で起動
+# Start with Docker Compose
 cd /projects/aquapulse
 docker compose up -d
 
-# キオスクモードを有効化（ディスプレイ表示）
+# Enable kiosk mode (display)
 sudo systemctl enable grafana-kiosk
 sudo systemctl start grafana-kiosk
 ```
 
 ---
 
-## 📖 ドキュメント
+## Documentation
 
-| ドキュメント | 内容 |
-|--------------|------|
-| [アーキテクチャ設計](docs/design/architecture.md) | ML・因果推論のためのデータ基盤設計 |
-| [評価指標設計](docs/design/metrics.md) | KGI/KPI・プロキシ指標の考え方 |
-| [Grafana キオスク](docs/display/grafana-kiosk.md) | ディスプレイ表示の設定・運用 |
-| [配線記録](docs/hardware/wiring/) | ピン配置・センサー接続 |
-| [作業ログ](docs/operations/daily-log.md) | 日次の作業記録 |
+| Document | Description |
+|----------|-------------|
+| [Architecture](docs/design/architecture.md) | ML & causal inference data platform design |
+| [Metrics Design](docs/design/metrics.md) | KGI/KPI & proxy metrics approach |
+| [Grafana Kiosk](docs/display/grafana-kiosk.md) | Display setup & operation |
+| [Wiring](docs/hardware/wiring/) | Pin layout & sensor connections |
+| [Daily Log](docs/operations/daily-log.md) | Work logs (Japanese) |
 
 ---
 
-## 📝 License
+## License
 
 MIT
