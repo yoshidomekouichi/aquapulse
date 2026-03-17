@@ -1,4 +1,4 @@
-psycopg2-binary
+psycopg2-binary>=2.9.9
 python-kasa>=0.10.0
 tapo>=0.8.11
-smbus2
+smbus2>=0.4.0
