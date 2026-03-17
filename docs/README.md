@@ -31,19 +31,13 @@
 | [配線記録（最新）](hardware/wiring/) | ラズパイピン配置・センサー接続 |
 | [改善計画・試行ログ](hardware/improvement-plan.md) | ハードウェア改善の計画 |
 
-### システム
-
-| ドキュメント | 説明 |
-|--------------|------|
-| [Collector ソース一覧](collector-sources.md) | センサーソース・環境変数・sensor_id |
-| [SSD 移行レポート](ssd-migration-report.md) | SSD 起動移行の問題と解決 |
-
 ### 設計
 
 | ドキュメント | 説明 |
 |--------------|------|
 | [アーキテクチャ](design/architecture.md) | データ基盤・ML 設計方針 |
 | [評価指標](design/metrics.md) | KGI/KPI・プロキシ指標の設計 |
+| [Collector ソース一覧](design/collector-sources.md) | センサーソース・環境変数・sensor_id |
 
 ### 運用
 
@@ -51,6 +45,9 @@
 |--------------|------|
 | [日次ログ](operations/daily-log.md) | 作業記録・トラブル対応 |
 | [復旧手順](operations/recovery-runbook.md) | OS 再インストール後・ネットワーク障害時の手順 |
+| [SSD 移行レポート](operations/ssd-migration-report.md) | SSD 起動移行の問題と解決 |
+| [SSD 移行ガイド](operations/SSD_MIGRATION_GUIDE.md) | SSD 起動への移行手順 |
+| [Tapo ステータスレポート](operations/tapo-status-report.md) | Tapo デバイスの状態調査 |
 
 ---
 
