@@ -10,6 +10,8 @@
 
 Collecting environmental data (water temp, room temp, humidity, lighting) and applying causal inference to understand what actually affects water quality and when to intervene.
 
+**Risk Management** (minimize volatility) / **Cost Optimization** (reduce maintenance effort) / **SLA Improvement** (anomaly detection & rapid response)
+
 ![Grafana Dashboard](docs/images/dashboard.png)
 
 ## Current Status
