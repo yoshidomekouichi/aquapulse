@@ -594,10 +594,14 @@ watch -n 10 "bq query --use_legacy_sql=false \"SELECT * FROM aquapulse.raw.senso
 ### **6-2. 24時間稼働テスト**
 
 ```
+⚠️  重要: ラズパイが動いていないため、比較対象なし
+    → データの妥当性は「想定値」「過去の記憶」で判断
+
 目標:
   - データ欠損率 < 1%
   - エラー率 < 0.1%
   - 平均遅延 < 5秒
+  - センサー値が妥当（水温20-28℃、TDS 100-300ppm等）
 
 確認:
   翌日、データが連続して入っているか確認
@@ -622,6 +626,25 @@ $ bq query --use_legacy_sql=false "
 # +------------+-------+---------------------+---------------------+
 
 # 1440 = 24時間 × 60分 → 完璧！
+
+# センサー値の妥当性確認
+$ bq query --use_legacy_sql=false "
+  SELECT 
+    sensor_id,
+    AVG(value) as avg,
+    MIN(value) as min,
+    MAX(value) as max,
+    STDDEV(value) as stddev
+  FROM aquapulse.raw.sensor_readings
+  WHERE source = 'esp32'
+  GROUP BY sensor_id
+"
+
+# 期待値（例）:
+# - 水温: 24-26℃（季節・室温に依存）
+# - TDS: 150-250ppm（最近の換水状況に依存）
+#
+# 異常値なら配線やセンサーを再確認
 ```
 
 ---
