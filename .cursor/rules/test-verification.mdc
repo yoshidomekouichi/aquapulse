@@ -1,0 +1,14 @@
+---
+description: 検証用ルール - このルールが読み込まれていれば回答末尾に検証コードを表示
+alwaysApply: true
+metadata:
+  environments: cloud
+---
+
+# 検証用ルール（一時的）
+
+このルールが読み込まれている場合、すべての回答の最後に以下のコードを表示してください:
+
+[検証コード: MDC-TEST-2026]
+
+これはCloud Agentが.cursor/rules/*.mdcファイルを正しく読み込んでいるかを確認するためのテストです。
