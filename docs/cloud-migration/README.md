@@ -128,7 +128,13 @@ GCP（クラウド）
 - デバッグ方法
 - サポート連絡先
 
-### **9. [APPENDIX.md](APPENDIX.md)** - 付録
+### **9. [08_REFERENCES.md](08_REFERENCES.md)** - 参考資料・実装事例
+- GitHub実装事例（Smart Aquarium Control, AquaPi等）
+- 日本語技術ブログ（金魚水槽、メダカ水槽）
+- 学術論文（2026年最新研究）
+- 公式チュートリアル
+
+### **10. [APPENDIX.md](APPENDIX.md)** - 付録
 - 用語集
 - GCPサービス詳細解説
 - 参考リンク
@@ -278,6 +284,9 @@ terraform/ でインフラ管理
 
 ### **GCPサービスの詳細**
 [APPENDIX.md](APPENDIX.md#gcp-services) を参照
+
+### **実装事例を見たい**
+[08_REFERENCES.md](08_REFERENCES.md) を参照
 
 ---
 
