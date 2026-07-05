@@ -1,0 +1,448 @@
+---
+description: バージョン管理 - Git/PR戦略とタスク分割
+alwaysApply: true
+metadata:
+  environments: cloud
+---
+
+# Version Control Rules
+
+Git ワークフロー、PR戦略、タスク分割の統合ルール。
+
+## 1. Git ワークフロー（GitHub Flow）
+
+### ブランチ戦略
+
+```
+main（常にデプロイ可能）
+  ├─ cursor/feature-a-0d1c → PR → マージ
+  └─ cursor/feature-b-0d1c → PR → マージ
+
+ブランチ命名規則:
+  cursor/<descriptive-name>-0d1c
+
+例:
+  cursor/esp32-sensor-integration-0d1c
+  cursor/fix-grafana-dashboard-0d1c
+```
+
+### 基本フロー
+
+```bash
+# 1. タスク開始
+git checkout main
+git pull origin main
+git checkout -b cursor/<name>-0d1c
+
+# 2. 実装
+# ...
+
+# 3. コミット
+git add <files>
+git commit -m "feat(scope): description"
+
+# 4. Push
+git push -u origin cursor/<name>-0d1c
+
+# 5. PR状態確認（重要）
+gh pr list --head cursor/<name>-0d1c
+
+# 6. PR作成
+gh pr create --title "..." --body "..." --draft
+
+# 7. マージ後
+git checkout main
+git pull origin main
+git branch -d cursor/<name>-0d1c
+```
+
+### 禁止事項
+
+```
+1. mainへの直接push
+2. Force push to main
+3. PRのスキップ
+4. ブランチ命名規則違反
+5. マージ済みブランチの再利用
+6. PR状態確認の省略
+```
+
+## 2. PR戦略
+
+### PRサイズ制約
+
+```
+推奨サイズ:
+  - 200-400行の変更
+  - 5-10ファイル以内
+  - レビュー時間: 15-20分以内
+
+超過時:
+  - 実装を停止
+  - 次のPRに分割
+  - 分割計画を再提案
+
+根拠（MSR 2026研究）:
+  - 小規模PR（300行未満）はマージ率が高い
+  - CI失敗はマージ確率を15%低下
+  - AI PRは平均51%大きく、放棄されやすい
+```
+
+### 1 PR = 1論理的変更
+
+```
+各PRは以下のいずれか1つのみ:
+  - 新機能の追加
+  - バグ修正
+  - リファクタリング
+  - ドキュメント更新
+  - テスト追加
+
+混ぜない:
+  - リファクタリング + 新機能
+  - フォーマット修正 + ロジック変更
+  - ドキュメント + 実装
+```
+
+### 垂直スライス（Vertical Slicing）
+
+```
+コードを書く前に分割計画を立てる:
+
+タスク受領
+  ↓
+依存関係を分析
+  ↓
+分割計画を提案（各PR: 200-400行）
+  ↓
+ユーザー承認
+  ↓
+PR単位で実装
+```
+
+## 3. 依存関係の判断
+
+### 技術的依存（スタックPR必須）
+
+```
+例1: データベーススキーマ変更
+  PR 1: users テーブルに email 列追加
+  PR 2: email を使った認証機能
+  
+  → PR 2 は PR 1 なしで動作不可
+  → スタックPR
+
+例2: API削除
+  PR 1: 新エンドポイント追加
+  PR 2: 旧エンドポイント削除
+  
+  → 段階的移行が必要
+  → スタックPR
+```
+
+### 論理的依存（並列PR可能）
+
+```
+例: ユーザー管理機能
+
+疎結合な設計:
+  PR 1: User インターフェース定義
+  PR 2: UserService 実装（モック使用）
+  PR 3: UserController 実装（モック使用）
+  PR 4: 統合（すべてを接続）
+  
+  → PR 1-3 は並列レビュー可能
+```
+
+### 判断基準
+
+```
+技術的依存あり → スタックPR
+論理的依存のみ → 疎結合化を検討
+疎結合化が不自然 → スタックPR
+
+無理に分離しない
+```
+
+## 4. スタックPR
+
+### 構造
+
+```
+main
+ ├─ PR 1: 基盤（base: main）
+     └─ PR 2: 機能A（base: PR 1のブランチ）
+         └─ PR 3: 機能B（base: PR 2のブランチ）
+
+マージ順序: PR 1 → PR 2 → PR 3（根元から）
+```
+
+### マージフロー
+
+```
+ステップ1: PR 1 レビュー＆マージ
+  main ← PR 1
+  
+ステップ2: PR 2 の base を変更
+  gh pr edit <PR 2番号> --base main
+  
+  理由: PR 1 のブランチはもう存在しない
+  
+ステップ3: PR 2 レビュー＆マージ
+  main ← PR 2
+  
+（以降繰り返し）
+```
+
+## 5. コミット規約
+
+### Conventional Commits
+
+```
+<type>(<scope>): <subject>
+
+<body>（オプション）
+
+<footer>（オプション）
+
+Type:
+  feat: 新機能
+  fix: バグ修正
+  docs: ドキュメント
+  refactor: リファクタリング
+  test: テスト追加
+  chore: ビルド・設定
+
+日本語OK
+```
+
+## 6. PR作成前チェックリスト
+
+```
+必須確認:
+  - [ ] gh pr list --head <branch> でPR状態確認済み
+  - [ ] ブランチ名が規則準拠（cursor/*-0d1c）
+  - [ ] マージ済みブランチを再利用していない
+  - [ ] コミットメッセージがConventional Commits形式
+  - [ ] PRサイズが200-400行以内
+  - [ ] 1 PR = 1論理的変更
+  - [ ] 変更内容を簡潔に説明できる
+  - [ ] 関連ドキュメントを更新した
+```
+
+## 7. 操作前の必須確認（再発防止）
+
+### コミット前の必須確認
+
+```bash
+# 必ず実行
+git branch --show-current
+
+# mainブランチの場合
+→ コミットを中止
+→ Level 1エラーとして即座に報告
+→ 正しいfeatureブランチに切り替え
+```
+
+### mainブランチ誤操作の検知と対応
+
+```
+検知タイミング:
+  - git commitを実行する直前
+  - git pushを実行する直前
+
+検知時の動作:
+  1. 即座に操作を中止
+  2. ユーザーに報告（Level 1エラー）
+  3. 修正手順を提案
+
+報告テンプレート:
+  「問題が発生しました。
+  
+   検知: mainブランチへのコミット試行
+   状態: コミットは実行していません
+   対処: featureブランチを作成します
+   
+   次のステップ:
+   1. git checkout -b cursor/<name>-0d1c
+   2. 変更を再コミット」
+```
+
+### PR作成失敗時の診断フロー
+
+```
+失敗パターン1: "No open PR found"
+  原因: PRがすでにマージ済み、または存在しない
+  対処: 新しいPRを作成
+
+失敗パターン2: "GraphQL: Resource not accessible"
+  原因: gh CLIの権限制限
+  対処: ManagePullRequestツールを使用
+
+失敗パターン3: "aborted: you must first push"
+  原因: ブランチがリモートに存在しない
+  対処: git push -u origin <branch>
+
+ツール選択基準:
+  PR作成: ManagePullRequestツール（優先）
+  PR更新: ManagePullRequestツール
+  PR確認: gh pr list（問題なし）
+  PR情報取得: gh pr view（問題なし）
+```
+
+### エラー報告トリガー（自動判定）
+
+```
+Level 1（必ず即座に報告）:
+  - mainブランチでのgit commit試行
+  - mainブランチでのgit push試行
+  - force push to main試行
+  - 同じ操作の3回目の失敗
+
+Level 2（状況に応じて報告）:
+  - PR作成の1回目の失敗（診断後に報告）
+  - 同じ操作の2回目の失敗
+
+Level 3（報告不要）:
+  - 1回で成功した操作
+  - 読み取り専用操作
+```
+
+### 実装例: コミット前の自動確認
+
+```bash
+# AI Agentが内部的に実行する確認
+CURRENT_BRANCH=$(git branch --show-current)
+
+if [ "$CURRENT_BRANCH" = "main" ]; then
+  echo "ERROR: mainブランチへの直接コミットは禁止"
+  echo "現在のブランチ: $CURRENT_BRANCH"
+  echo ""
+  echo "対処方法:"
+  echo "1. git checkout -b cursor/<descriptive-name>-0d1c"
+  echo "2. 変更を再コミット"
+  exit 1
+fi
+
+# 確認OK → コミット実行
+git commit -m "..."
+```
+
+### 過去の実例から学ぶ
+
+```
+実例（2026-07-05）:
+  問題: mainブランチに直接コミット
+  原因: featureブランチ作成後、mainに戻ってしまった
+  結果: PR作成不可（mainからmainへのPRは作成不可）
+  
+  再発防止:
+  1. コミット前に必ずgit branch --show-current
+  2. mainを検知したら即座に中止＆報告
+  3. PR作成はManagePullRequestツール優先
+
+根本原則:
+  「気をつける」ではなく「構造的に防ぐ」
+```
+
+## 8. Cursor機能の活用
+
+### /worktree（並列タスク）
+
+```bash
+# 疎結合な設計の場合
+/worktree 「インターフェース定義」
+/worktree 「サービス実装（モック使用）」
+/worktree 「コントローラ実装（モック使用）」
+
+→ 各タスクが独立したPRになる
+```
+
+### /babysit（PR改善ループ）
+
+```bash
+/babysit 「PR #XX をCI通過まで改善」
+
+→ レビューコメントに自動対応
+→ CI失敗を自動修正
+```
+
+## 9. 実践例
+
+### 良い例: 垂直スライスで分割
+
+```
+タスク: 「水温センサー統合」
+
+分割計画:
+  PR 1: DS18B20データモデル（150行）
+  PR 2: センサー読み取り関数（200行）
+  PR 3: エラーハンドリング（180行）
+  PR 4: 統合テスト（220行）
+
+各PRは独立してレビュー可能
+合計: 750行 → 4つの小PRに分割
+```
+
+### 悪い例: 1つの巨大PR
+
+```
+タスク: 「水温センサー統合」
+
+1つのPR:
+  - データモデル
+  - センサー読み取り
+  - エラーハンドリング
+  - テスト
+  - ついでにリファクタリング
+  - ついでにドキュメント更新
+
+合計: 1,200行、15ファイル変更
+→ レビュー困難、放棄されやすい
+```
+
+## 10. 緊急時の対応
+
+```bash
+# Hotfixブランチ作成
+git checkout -b cursor/hotfix-critical-issue-0d1c
+
+# 最小限の修正
+# ...
+
+# PR作成（緊急であることを明記）
+gh pr create \
+  --title "HOTFIX: Critical production issue" \
+  --body "Immediate fix required." \
+  --label "hotfix"
+
+# 事後レビュー必須
+```
+
+重要: 緊急時でもPRは省略しない。
+
+## 11. このルールの目的
+
+```
+品質保証:
+  - PRレビューで問題を早期発見
+  - 小規模PRで精度向上
+
+トレーサビリティ:
+  - すべての変更がPRに記録
+  - なぜその変更をしたかが明確
+
+安全性:
+  - mainへの誤操作を防止
+  - ロールバックが容易
+
+プロフェッショナリズム:
+  - 業界標準のワークフロー
+  - チーム開発への即応力
+```
+
+## 参考資料
+
+- MSR 2026: "What 33,000 Agentic Pull Requests Reveal"
+- GitHub Flow: https://docs.github.com/en/get-started/using-github/github-flow
+- Conventional Commits: https://www.conventionalcommits.org/
