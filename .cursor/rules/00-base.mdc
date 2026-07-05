@@ -1,0 +1,113 @@
+---
+description: AquaPulseプロジェクト基盤ルール
+alwaysApply: true
+metadata:
+  environments: cloud
+---
+
+# AquaPulse Base Rules
+
+## プロジェクト概要
+
+AquaPulse: 淡水水槽モニタリングシステム
+
+### 技術スタック
+
+```
+ハードウェア:
+  - ESP32 (MicroPython)
+  - DS18B20 温度センサー
+  - Tapo T310/P300
+
+クラウド:
+  - GCP (Pub/Sub, Cloud Functions, BigQuery)
+  - Grafana Cloud
+
+インフラ:
+  - Terraform
+  - GitHub Actions
+
+言語:
+  - Python (Black + isort)
+  - MicroPython
+```
+
+### ディレクトリ構造
+
+```
+aquapulse/
+├─ esp32/              # ESP32 MicroPython コード
+├─ cloud-functions/    # GCP Cloud Functions
+├─ terraform/          # インフラコード
+├─ docs/               # ドキュメント
+└─ .cursor/rules/      # このディレクトリ
+```
+
+## プロジェクト固有の制約
+
+### ハードウェア制約
+
+```
+Raspberry Pi:
+  - 「死んでいる」前提（SSH不可、復旧不可）
+  - 使用しない
+
+ESP32:
+  - センサーは水槽に固定
+  - USB物理接続必須（初期開発時）
+  - IP問題は完全回避できない
+  - 書き換え回数は3-5回を想定
+```
+
+### 開発制約
+
+```
+過度に楽観的な見通しを避ける:
+  - モックテストの限界を明示
+  - センサー読み取りは実機必須
+  - 「できる」と「できない」を明確に分ける
+
+実装事例を優先:
+  - 実証済みの技術を採用
+  - 参考リンクを示す
+```
+
+## コード規約
+
+### Python
+
+```
+フォーマッター:
+  - Black
+  - isort
+
+スタイル:
+  - 関数: 50行以下
+  - クラス: 300行以下
+  - 1つの責務のみ
+```
+
+### コミットメッセージ
+
+```
+Conventional Commits形式推奨:
+
+feat(scope): 新機能追加
+fix(scope): バグ修正
+docs(scope): ドキュメント
+refactor(scope): リファクタリング
+test(scope): テスト追加
+chore(scope): ビルド・設定
+
+日本語OK
+```
+
+## 絶対に守るべきルール
+
+```
+1. mainブランチへの直接コミット禁止
+2. PRのスキップ禁止
+3. force push to main 禁止
+4. センサーの物理的制約を常に考慮
+5. 楽観的な見積もりを避ける
+```
