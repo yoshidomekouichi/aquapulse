@@ -25,6 +25,7 @@
 
 ## アクティブな決定
 
+- [ADR-0003](2026-07-05-shell-working-directory.md): ShellツールでのGit操作におけるworking_directory明示（承認済み）
 - [ADR-0002](2026-07-05-archive-directory-structure.md): アーカイブディレクトリ構造（承認済み）
 - [ADR-0001](2026-07-05-migrate-to-esp32-gcp.md): Raspberry PiからESP32+GCPへの移行（承認済み）
 
