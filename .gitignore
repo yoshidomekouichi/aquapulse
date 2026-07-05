@@ -30,3 +30,4 @@ tui/pip-packages/
 
 # --- Cursor IDE ---
 .cursor/
+!.cursor/rules/
