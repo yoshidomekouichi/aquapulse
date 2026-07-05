@@ -244,6 +244,30 @@ git branch --show-current
 → 正しいfeatureブランチに切り替え
 ```
 
+### Git操作の必須パラメータ（ADR-0003）
+
+すべてのGit操作で `working_directory` を明示:
+
+```python
+Shell(
+  command="git checkout -b cursor/feature-0d1c",
+  working_directory="/workspace"  # 必須
+)
+
+Shell(
+  command="git branch --show-current",
+  working_directory="/workspace"  # 必須
+)
+```
+
+理由:
+- Shellツールの状態依存を回避
+- PR #40-42で問題が発生（ADR-0003参照）
+
+禁止:
+- working_directoryを省略
+- cd /workspace && の連結（エラーが起きやすい）
+
 ### mainブランチ誤操作の検知と対応
 
 ```
