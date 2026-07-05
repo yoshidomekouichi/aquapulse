@@ -230,7 +230,122 @@ Type:
   - [ ] 関連ドキュメントを更新した
 ```
 
-## 7. Cursor機能の活用
+## 7. 操作前の必須確認（再発防止）
+
+### コミット前の必須確認
+
+```bash
+# 必ず実行
+git branch --show-current
+
+# mainブランチの場合
+→ コミットを中止
+→ Level 1エラーとして即座に報告
+→ 正しいfeatureブランチに切り替え
+```
+
+### mainブランチ誤操作の検知と対応
+
+```
+検知タイミング:
+  - git commitを実行する直前
+  - git pushを実行する直前
+
+検知時の動作:
+  1. 即座に操作を中止
+  2. ユーザーに報告（Level 1エラー）
+  3. 修正手順を提案
+
+報告テンプレート:
+  「問題が発生しました。
+  
+   検知: mainブランチへのコミット試行
+   状態: コミットは実行していません
+   対処: featureブランチを作成します
+   
+   次のステップ:
+   1. git checkout -b cursor/<name>-0d1c
+   2. 変更を再コミット」
+```
+
+### PR作成失敗時の診断フロー
+
+```
+失敗パターン1: "No open PR found"
+  原因: PRがすでにマージ済み、または存在しない
+  対処: 新しいPRを作成
+
+失敗パターン2: "GraphQL: Resource not accessible"
+  原因: gh CLIの権限制限
+  対処: ManagePullRequestツールを使用
+
+失敗パターン3: "aborted: you must first push"
+  原因: ブランチがリモートに存在しない
+  対処: git push -u origin <branch>
+
+ツール選択基準:
+  PR作成: ManagePullRequestツール（優先）
+  PR更新: ManagePullRequestツール
+  PR確認: gh pr list（問題なし）
+  PR情報取得: gh pr view（問題なし）
+```
+
+### エラー報告トリガー（自動判定）
+
+```
+Level 1（必ず即座に報告）:
+  - mainブランチでのgit commit試行
+  - mainブランチでのgit push試行
+  - force push to main試行
+  - 同じ操作の3回目の失敗
+
+Level 2（状況に応じて報告）:
+  - PR作成の1回目の失敗（診断後に報告）
+  - 同じ操作の2回目の失敗
+
+Level 3（報告不要）:
+  - 1回で成功した操作
+  - 読み取り専用操作
+```
+
+### 実装例: コミット前の自動確認
+
+```bash
+# AI Agentが内部的に実行する確認
+CURRENT_BRANCH=$(git branch --show-current)
+
+if [ "$CURRENT_BRANCH" = "main" ]; then
+  echo "ERROR: mainブランチへの直接コミットは禁止"
+  echo "現在のブランチ: $CURRENT_BRANCH"
+  echo ""
+  echo "対処方法:"
+  echo "1. git checkout -b cursor/<descriptive-name>-0d1c"
+  echo "2. 変更を再コミット"
+  exit 1
+fi
+
+# 確認OK → コミット実行
+git commit -m "..."
+```
+
+### 過去の実例から学ぶ
+
+```
+実例（2026-07-05）:
+  問題: mainブランチに直接コミット
+  原因: featureブランチ作成後、mainに戻ってしまった
+  結果: PR作成不可（mainからmainへのPRは作成不可）
+  
+  再発防止:
+  1. コミット前に必ずgit branch --show-current
+  2. mainを検知したら即座に中止＆報告
+  3. PR作成はManagePullRequestツール優先
+
+根本原則:
+  「気をつける」ではなく「構造的に防ぐ」
+```
+
+## 8. Cursor機能の活用
 
 ### /worktree（並列タスク）
 
@@ -252,7 +367,7 @@ Type:
 → CI失敗を自動修正
 ```
 
-## 8. 実践例
+## 9. 実践例
 
 ### 良い例: 垂直スライスで分割
 
@@ -286,7 +401,7 @@ Type:
 → レビュー困難、放棄されやすい
 ```
 
-## 9. 緊急時の対応
+## 10. 緊急時の対応
 
 ```bash
 # Hotfixブランチ作成
@@ -306,7 +421,7 @@ gh pr create \
 
 重要: 緊急時でもPRは省略しない。
 
-## 10. このルールの目的
+## 11. このルールの目的
 
 ```
 品質保証:
