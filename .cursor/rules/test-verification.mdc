@@ -1,8 +1,6 @@
 ---
 description: 検証用ルール - このルールが読み込まれていれば回答末尾に検証コードを表示
 alwaysApply: true
-metadata:
-  environments: cloud
 ---
 
 # 検証用ルール（一時的）

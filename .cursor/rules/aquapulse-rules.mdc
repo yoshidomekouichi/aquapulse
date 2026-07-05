@@ -1,8 +1,6 @@
 ---
-description: AquaPulseプロジェクトの開発ルールとスタンス
+description: AquaPulseプロジェクトの開発ルールとスタンス（Cloud Agent用）
 alwaysApply: true
-metadata:
-  environments: cloud
 ---
 
 # AquaPulse Project Rules
