@@ -155,6 +155,44 @@ sudo systemctl start grafana-kiosk
 
 ---
 
+## 🔀 開発フロー
+
+このプロジェクトは **GitHub Flow** を採用しています。
+
+### 貢献方法
+
+1. **Feature branchを作成**
+   ```bash
+   git checkout -b cursor/your-feature-cabf
+   ```
+
+2. **変更を実装・コミット**
+   ```bash
+   # Conventional Commits形式
+   git commit -m "feat: add new sensor support"
+   ```
+
+3. **Pushしてプルリクエストを作成**
+   ```bash
+   git push -u origin cursor/your-feature-cabf
+   gh pr create --draft
+   ```
+
+4. **CI通過・レビュー承認後にマージ**
+
+### 重要なルール
+
+- ✅ すべての変更はPR経由
+- ✅ ブランチ名：`cursor/<name>-cabf`
+- ✅ コミット：Conventional Commits形式
+- ❌ `main`への直接pushは禁止
+
+詳細: 
+- [Git Workflow Rules](.cursor/rules/git-workflow.mdc)
+- [Workflow Proposal](docs/operations/git-workflow-proposal.md)
+
+---
+
 ## 📝 License
 
 MIT
