@@ -1,55 +1,57 @@
 ---
 description: Git ワークフローとブランチ戦略ルール（Cloud Agent用）
 alwaysApply: true
+metadata:
+  environments: cloud
 ---
 
 # Git Workflow Rules
 
-このルールはCloud Agentがgit操作を行う際に**必ず従うべき**手順を定義します。
+このルールはCloud Agentがgit操作を行う際に必ず従うべき手順を定義する。
 
-## 🌊 採用戦略：GitHub Flow
+## 採用戦略: GitHub Flow
 
-AquaPulseプロジェクトは**GitHub Flow**を採用します。
+AquaPulseプロジェクトはGitHub Flowを採用する。
 
 ```
 main（常にデプロイ可能）
   │
-  ├─ cursor/feature-a-cabf
+  ├─ cursor/feature-a-0d1c
   │   └─ PR → レビュー → マージ
   │
-  └─ cursor/feature-b-cabf
+  └─ cursor/feature-b-0d1c
       └─ PR → レビュー → マージ
 ```
 
-## 📋 必須フロー（Cloud Agent）
+## 必須フロー
 
 ### 1. タスク開始時
 
 ```bash
 # 現在のブランチ確認
-git branch --show-current  # → main であることを確認
+git branch --show-current  # main であることを確認
 
 # 最新のmainを取得
 git pull origin main
 
 # Featureブランチを作成
-git checkout -b cursor/<descriptive-name>-cabf
+git checkout -b cursor/<descriptive-name>-0d1c
 ```
 
-**ブランチ命名規則**：
+ブランチ命名規則:
 ```
-cursor/<descriptive-name>-cabf
+cursor/<descriptive-name>-0d1c
 ```
 
-**例**：
-- `cursor/esp32-sensor-integration-cabf`
-- `cursor/fix-grafana-dashboard-cabf`
-- `cursor/update-cloud-migration-docs-cabf`
+例:
+- `cursor/esp32-sensor-integration-0d1c`
+- `cursor/fix-grafana-dashboard-0d1c`
+- `cursor/update-cloud-migration-docs-0d1c`
 
-**重要**：
-- 必ず `cursor/` プレフィックスを付ける
-- 必ず `-cabf` サフィックスを付ける
-- ケバブケース（小文字・ハイフン区切り）を使用
+必須要件:
+- `cursor/` プレフィックス必須
+- `-0d1c` サフィックス必須
+- ケバブケース（小文字・ハイフン区切り）使用
 
 ### 2. 実装・コミット
 
@@ -67,7 +69,7 @@ git add <files>
 git commit -m "feat(scope): description"
 ```
 
-**コミットメッセージ形式**：
+コミットメッセージ形式:
 ```
 <type>(<scope>): <subject>
 
@@ -76,7 +78,7 @@ git commit -m "feat(scope): description"
 <footer>（オプション）
 ```
 
-**Type**：
+Type:
 - `feat`: 新機能
 - `fix`: バグ修正
 - `docs`: ドキュメント
@@ -89,13 +91,27 @@ git commit -m "feat(scope): description"
 
 ```bash
 # Featureブランチにpush
-git push -u origin cursor/<name>-cabf
+git push -u origin cursor/<name>-0d1c
 ```
 
-### 4. PR作成
+### 4. PR操作前の状態確認（重要）
+
+PR作成・更新前に必ず現在の状態を確認する:
 
 ```bash
-# PR作成（ManagePullRequest tool使用）
+# 既存PRの状態確認
+gh pr list --head cursor/<name>-0d1c
+
+# 結果が空 → PR未作成、新規作成可能
+# 結果あり → PR状態を確認（OPEN/MERGED/CLOSED）
+```
+
+MERGED状態のブランチには新しいコミットを追加しない。新しいブランチを作成する。
+
+### 5. PR作成
+
+```bash
+# ManagePullRequest tool使用
 # または gh CLI
 gh pr create \
   --title "feat: description" \
@@ -103,13 +119,13 @@ gh pr create \
   --draft  # 最初はdraftで作成
 ```
 
-**PR作成時の必須事項**：
+PR作成時の必須事項:
 - タイトルはConventional Commits形式
 - 変更内容の説明（なぜ、何を）
 - テスト実施状況
 - 関連ドキュメントの更新有無
 
-### 5. CI確認・レビュー依頼
+### 6. CI確認・レビュー依頼
 
 ```bash
 # CIが通過したらdraftを解除
@@ -119,7 +135,7 @@ gh pr ready
 # （ユーザーが手動でレビュー）
 ```
 
-### 6. マージ後のクリーンアップ
+### 7. マージ後のクリーンアップ
 
 ```bash
 # mainに戻る
@@ -128,38 +144,48 @@ git checkout main
 # 最新を取得
 git pull origin main
 
-# Featureブランチを削除
-git branch -d cursor/<name>-cabf
+# Featureブランチを削除（ローカル）
+git branch -d cursor/<name>-0d1c
+
+# リモートブランチも削除（通常はGitHubが自動削除）
+git push origin --delete cursor/<name>-0d1c
 ```
 
-## ❌ 禁止事項
+## 禁止事項
 
-以下の操作は**絶対に禁止**：
+以下の操作は絶対に禁止:
 
-1. **mainへの直接push**
+1. mainへの直接push
    ```bash
-   git push origin main  # ❌ 禁止
+   git push origin main  # 禁止
    ```
 
-2. **Force pushto main**
+2. Force push to main
    ```bash
-   git push --force origin main  # ❌ 禁止
+   git push --force origin main  # 禁止
    ```
 
-3. **PRのスキップ**
+3. PRのスキップ
    - どんなに小さな変更でも必ずPR経由
 
-4. **ブランチ命名規則違反**
-   - `cursor/` プレフィックスなし → ❌
-   - `-cabf` サフィックスなし → ❌
+4. ブランチ命名規則違反
+   - `cursor/` プレフィックスなし
+   - `-0d1c` サフィックスなし
 
-## ⚠️ 緊急時の対応
+5. マージ済みブランチの再利用
+   - MERGED状態のブランチに新しいコミットを追加しない
+   - 新しいタスクには新しいブランチを作成
 
-緊急時（本番障害等）でも、以下の手順を守る：
+6. PR状態確認の省略
+   - PR作成・更新前に必ず `gh pr list` で状態確認
+
+## 緊急時の対応
+
+緊急時（本番障害等）でも、以下の手順を守る:
 
 ```bash
 # 1. Hotfixブランチを作成（省略しない）
-git checkout -b cursor/hotfix-critical-issue-cabf
+git checkout -b cursor/hotfix-critical-issue-0d1c
 
 # 2. 最小限の修正
 # ...
@@ -168,11 +194,11 @@ git checkout -b cursor/hotfix-critical-issue-cabf
 git commit -m "fix(critical): resolve production issue"
 
 # 4. Push
-git push -u origin cursor/hotfix-critical-issue-cabf
+git push -u origin cursor/hotfix-critical-issue-0d1c
 
 # 5. PR作成（緊急であることを明記）
 gh pr create \
-  --title "🚨 HOTFIX: Critical production issue" \
+  --title "HOTFIX: Critical production issue" \
   --body "Immediate fix required. Post-merge review." \
   --label "hotfix"
 
@@ -180,29 +206,30 @@ gh pr create \
 # （可能な限りCI通過を待つ）
 
 # 7. 事後レビュー必須
-# 翌営業日にretrospective実施
 ```
 
-**重要**：緊急時でもPRは省略しない。CIのみスキップ可能（判断による）。
+重要: 緊急時でもPRは省略しない。CIのみスキップ可能（判断による）。
 
-## 📝 PR作成のチェックリスト
+## PR作成前チェックリスト
 
-PRを作成する前に以下を確認：
+PRを作成する前に以下を確認:
 
-- [ ] ブランチ名が規則に準拠（`cursor/*-cabf`）
+- [ ] `gh pr list --head <branch>` でPR状態を確認済み
+- [ ] ブランチ名が規則に準拠（`cursor/*-0d1c`）
+- [ ] マージ済みブランチを再利用していない
 - [ ] コミットメッセージがConventional Commits形式
 - [ ] 変更内容を簡潔に説明できる
 - [ ] ローカルテスト済み（可能な範囲で）
 - [ ] 関連ドキュメントを更新した
 - [ ] 不要なファイルを含んでいない
 
-## 🔄 例：実際のワークフロー
+## 実際のワークフロー例
 
 ```bash
-# 1. タスク：ESP32センサー統合
+# 1. タスク: ESP32センサー統合
 git checkout main
 git pull origin main
-git checkout -b cursor/esp32-sensor-integration-cabf
+git checkout -b cursor/esp32-sensor-integration-0d1c
 
 # 2. 実装
 # collector/src/sources/esp32.py を作成
@@ -218,44 +245,49 @@ Connects to Pub/Sub for cloud ingestion.
 Refs #45"
 
 # 4. Push
-git push -u origin cursor/esp32-sensor-integration-cabf
+git push -u origin cursor/esp32-sensor-integration-0d1c
 
-# 5. PR作成
+# 5. PR状態確認（重要）
+gh pr list --head cursor/esp32-sensor-integration-0d1c
+# 結果が空 → 新規作成可能
+
+# 6. PR作成
 gh pr create \
   --title "feat(collector): ESP32センサー統合" \
   --body "DS18B20とMCP3424のデータ収集機能を追加" \
   --draft
 
-# 6. CI確認後、draft解除
+# 7. CI確認後、draft解除
 gh pr ready
 
-# 7. ユーザーレビュー待ち
+# 8. ユーザーレビュー待ち
 
-# 8. 承認・マージ後
+# 9. 承認・マージ後
 git checkout main
 git pull origin main
-git branch -d cursor/esp32-sensor-integration-cabf
+git branch -d cursor/esp32-sensor-integration-0d1c
 ```
 
-## 🎯 このルールの目的
+## このルールの目的
 
-1. **品質保証**
+1. 品質保証
    - PRレビューで問題を早期発見
    - CIで自動テスト
 
-2. **トレーサビリティ**
+2. トレーサビリティ
    - すべての変更がPRに記録
    - なぜその変更をしたかが明確
 
-3. **安全性**
+3. 安全性
    - mainへの誤pushを防止
    - ロールバックが容易
+   - マージ済みブランチの誤操作を防止
 
-4. **プロフェッショナリズム**
+4. プロフェッショナリズム
    - 業界標準のワークフロー
    - チーム開発への即応力
 
-## 📚 参考資料
+## 参考資料
 
 - [Git Workflow Proposal](../../operations/git-workflow-proposal.md)
 - [GitHub Flow公式](https://docs.github.com/en/get-started/using-github/github-flow)
@@ -263,4 +295,4 @@ git branch -d cursor/esp32-sensor-integration-cabf
 
 ---
 
-**重要**：このルールは`alwaysApply: true`のため、Cloud Agentは**すべてのセッション**でこれに従います。
+重要: このルールは`alwaysApply: true`のため、Cloud Agentはすべてのセッションでこれに従う。
