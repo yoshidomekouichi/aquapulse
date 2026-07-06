@@ -20,13 +20,30 @@ Collecting environmental data (water temp, room temp, humidity, lighting) and ap
 
 ## Current Status
 
+> ⚠️ **Architecture Transition in Progress**
+> 
+> The project is migrating from Raspberry Pi to **ESP32 + GCP** cloud-native architecture to solve persistent IP address and physical access issues. See: [Why Cloud Migration](docs/explanation/why-cloud-migration.md)
+
+### Legacy System (Raspberry Pi)
+
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Sensor Data Collection | ✅ Running | Water temp, room temp, humidity, lighting ON/OFF |
-| TimescaleDB Storage | ✅ Running | 1+ month of accumulated data |
-| Grafana Dashboard | ✅ Running | PC + Touch Display (kiosk mode) |
+| Sensor Data Collection | 🔴 Stopped | Raspberry Pi SSH inaccessible |
+| TimescaleDB Storage | 🔴 Inaccessible | Data cannot be retrieved |
+| Grafana Dashboard | 🔴 Offline | No access to Raspberry Pi |
 | Event Logging | ⚠️ Interim | Using Grafana Annotations |
 | Causal Inference Model | 🔜 Planned | After sufficient data accumulation |
+
+### New System (ESP32 + GCP)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| ESP32 Hardware | 🔜 Planned | Purchasing ESP32-DevKitC |
+| Sensor Data Collection | 🔧 In Progress | DS18B20, MCP3424 (reuse from RPi) |
+| GCP Pub/Sub | 🔜 Planned | Message buffering |
+| Cloud Functions | 🔜 Planned | Data ingestion |
+| BigQuery Storage | 🔜 Planned | Time-series data warehouse |
+| Grafana Cloud | 🔜 Planned | Visualization |
 
 ---
 
@@ -80,6 +97,8 @@ Collecting environmental data (water temp, room temp, humidity, lighting) and ap
 
 ## Tech Stack
 
+### Legacy (Raspberry Pi) - Deprecated
+
 | Component | Technology |
 |-----------|------------|
 | Device | Raspberry Pi 5 (8GB) + NVMe SSD |
@@ -89,6 +108,19 @@ Collecting environmental data (water temp, room temp, humidity, lighting) and ap
 | Database | TimescaleDB (PostgreSQL) |
 | Visualization | Grafana (kiosk mode: cage + Chromium) |
 | Infrastructure | Docker / Docker Compose |
+
+### New (ESP32 + GCP) - In Progress
+
+| Component | Technology |
+|-----------|------------|
+| Hardware | ESP32-DevKitC (16MB flash) |
+| Firmware | MicroPython |
+| Messaging | GCP Pub/Sub |
+| Compute | Cloud Functions (Python 3.11) |
+| Database | BigQuery |
+| Visualization | Grafana Cloud |
+| Infrastructure | Terraform |
+| CI/CD | GitHub Actions |
 
 ---
 
@@ -118,20 +150,34 @@ Collecting environmental data (water temp, room temp, humidity, lighting) and ap
 
 ```
 aquapulse/
-├── collector/       # Sensor data collection module
-├── db/              # Database init & migrations
-├── grafana/         # Grafana configuration
-├── kiosk/           # Kiosk mode scripts
+├── esp32/              # ESP32 MicroPython code (NEW)
+├── cloud-functions/    # GCP Cloud Functions (NEW)
+├── terraform/          # Infrastructure as Code (NEW)
+├── collector/          # Legacy: Sensor data collection (RPi)
+├── db/                 # Legacy: Database init & migrations (RPi)
+├── grafana/            # Legacy: Grafana configuration (RPi)
+├── kiosk/              # Legacy: Kiosk mode scripts (RPi)
+├── .cursor/rules/      # AI agent development rules
 └── docs/
-    ├── display/     # Display & kiosk setup
-    ├── hardware/    # Wiring & sensors
-    ├── operations/  # Operation logs
-    └── design/      # Architecture & design
+    ├── tutorials/      # Learning-oriented guides
+    ├── guides/         # Task-oriented how-tos
+    ├── reference/      # Technical specifications
+    ├── explanation/    # Conceptual documentation
+    ├── decisions/      # Architecture Decision Records (ADRs)
+    ├── archive/        # Deprecated/archived documentation
+    ├── display/        # Legacy: Display & kiosk setup (RPi)
+    ├── hardware/       # Legacy: Wiring & sensors (RPi)
+    ├── operations/     # Legacy: Operation logs (RPi)
+    └── design/         # Legacy: Architecture & design (RPi)
 ```
 
 ---
 
 ## Quick Start
+
+> ⚠️ **Note:** The project is transitioning to ESP32 + GCP architecture. The Raspberry Pi setup below is no longer functional due to SSH connectivity issues.
+
+### Legacy (Raspberry Pi) - Deprecated
 
 ```bash
 # Start with Docker Compose
@@ -143,17 +189,62 @@ sudo systemctl enable grafana-kiosk
 sudo systemctl start grafana-kiosk
 ```
 
+### New (ESP32 + GCP) - In Progress
+
+Follow the [Getting Started Tutorial](docs/tutorials/getting-started-esp32.md) to:
+
+1. Set up ESP32 hardware
+2. Configure GCP project
+3. Deploy Cloud Functions
+4. View live sensor data in Grafana Cloud
+
+**Estimated setup time:** 2-3 hours
+
 ---
 
 ## Documentation
 
-| Document | Description |
-|----------|-------------|
-| [Architecture](docs/design/architecture.md) | ML & causal inference data platform design |
-| [Metrics Design](docs/design/metrics.md) | KGI/KPI & proxy metrics approach |
-| [Grafana Kiosk](docs/display/grafana-kiosk.md) | Display setup & operation |
-| [Wiring](docs/hardware/wiring/) | Pin layout & sensor connections |
-| [Daily Log](docs/operations/daily-log.md) | Work logs (Japanese) |
+Documentation is organized using the [Diátaxis framework](https://diataxis.fr/) to separate content by user intent:
+
+### 📚 Tutorials (Learning-Oriented)
+
+New to ESP32 aquarium monitoring? Start here:
+
+- [Getting Started with ESP32](docs/tutorials/getting-started-esp32.md) - Your first ESP32 sensor project
+
+### 📖 Guides (Task-Oriented)
+
+Step-by-step instructions for specific tasks:
+
+- [Hardware Setup](docs/guides/hardware-setup.md) - ESP32 wiring and sensor connections
+- [GCP Setup](docs/guides/gcp-setup.md) - Account creation, project setup, authentication
+
+### 📘 Reference (Information-Oriented)
+
+Technical specifications and API documentation:
+
+- [System Architecture](docs/reference/architecture.md) - Tech stack, data flow, schemas, costs
+
+### 💡 Explanation (Understanding-Oriented)
+
+Conceptual explanations and design decisions:
+
+- [Why Cloud Migration](docs/explanation/why-cloud-migration.md) - Rationale behind ESP32 + GCP architecture
+
+### 🗂️ Architecture Decision Records
+
+Significant architectural decisions and their context:
+
+- [Decision Log](docs/decisions/README.md) - Index of all ADRs
+- [ADR-0001](docs/decisions/2026-07-05-migrate-to-esp32-gcp.md) - Migrate to ESP32 + GCP
+- [ADR-0002](docs/decisions/2026-07-05-archive-directory-structure.md) - Archive directory structure
+- [ADR-0003](docs/decisions/2026-07-05-shell-working-directory.md) - Explicit Shell `working_directory`
+
+### 📦 Legacy Documentation
+
+Raspberry Pi documentation has been archived:
+
+- [Archived Docs](docs/archive/) - Old Japanese documentation (superseded)
 
 ---
 
