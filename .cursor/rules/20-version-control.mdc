@@ -292,6 +292,46 @@ Report template:
    2. Re-commit changes"
 ```
 
+### Before Starting Work on Existing Branch
+
+Always check PR status before resuming work on an existing branch:
+
+```bash
+# Check PR status for branch
+gh pr list --head <branch-name>
+
+# If empty output → No open PR exists
+#   → Check if PR was merged
+#   → If merged: DO NOT reuse branch, create new branch instead
+
+# If PR exists and is open → Safe to continue
+```
+
+Detection:
+  - Empty output from `gh pr list --head <branch-name>`
+  - Indicates branch has no open PR (possibly merged)
+  
+Action when merged PR branch detected:
+  1. Stop work immediately
+  2. Report to user (Level 1 error)
+  3. Propose creating new branch
+
+Report template:
+  "Problem detected.
+   
+   Detected: Working on merged PR's branch
+   Branch: <branch-name> was used for merged PR #XX
+   Status: Branch should not be reused
+   Action: Create new branch cursor/<name>-0d1c
+   
+   Next steps:
+   1. git checkout main
+   2. git pull origin main
+   3. git checkout -b cursor/<new-name>-0d1c
+   4. Apply changes to new branch"
+
+Root principle: "Structurally prevent" merged branch reuse
+
 ### PR Creation Failure Diagnostic Flow
 
 ```
