@@ -184,7 +184,7 @@ When exceeded:
 When multiple rules conflict:
 
 1. Later file takes precedence
-   00-base.mdc < 40-pr-strategy.mdc
+   00-base.mdc < 20-version-control.mdc
 
 2. More specific rule takes precedence
    General rule < Domain-specific rule
