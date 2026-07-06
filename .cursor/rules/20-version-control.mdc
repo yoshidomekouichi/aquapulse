@@ -216,7 +216,65 @@ Type:
 English preferred, Japanese acceptable
 ```
 
-## 6. Pre-PR Checklist
+## 6. Pre-PR Conflict Check (Mandatory)
+
+Always check for conflicts before creating PR:
+
+```bash
+# After completing work on branch, before creating PR
+
+# 1. Fetch latest main
+git fetch origin main
+
+# 2. Dry-run merge test
+git merge origin/main --no-commit --no-ff
+
+# 3. Check results
+# No conflict → git merge --abort → Create PR
+# Conflict → Resolve → Commit → Create PR
+```
+
+**Detection:**
+- If merge succeeds: No conflicts, safe to create PR
+- If merge fails: Conflicts exist, must resolve first
+
+**Action when conflicts detected:**
+1. Resolve conflicts in editor
+2. `git add <resolved-files>`
+3. `git commit -m "fix: resolve merge conflicts with main"`
+4. `git push origin <branch-name>`
+5. Create PR
+
+**Alternative: Rebase (if PR already created):**
+```bash
+git fetch origin main
+git rebase origin/main
+
+# If conflicts occur
+git rebase --continue  # after resolving each conflict
+
+git push -f origin <branch-name>
+```
+
+**Why mandatory:**
+- Prevents wasted time on conflict resolution after PR creation
+- Ensures PR is immediately reviewable
+- Reduces context switching
+
+**Example (PR #50):**
+```
+Problem: PR created from old main (f998d5c)
+         PR #48, #49 merged to main (47448f5)
+         GitHub detected conflicts
+
+Solution: git rebase origin/main
+          git push -f origin cursor/docs-phase3-tutorials-archive-0d1c
+          PR automatically updated, conflicts resolved
+```
+
+---
+
+## 7. Pre-PR Checklist
 
 ```
 Required checks:
@@ -230,7 +288,7 @@ Required checks:
   - [ ] Related documentation updated
 ```
 
-## 7. Pre-Operation Checks (Recurrence Prevention)
+## 8. Pre-Operation Checks (Recurrence Prevention)
 
 ### Pre-Commit Check
 
@@ -409,7 +467,7 @@ Root principle:
   "Structurally prevent" not "be careful"
 ```
 
-## 8. Utilizing Cursor Features
+## 9. Utilizing Cursor Features
 
 ### /worktree (Parallel Tasks)
 
@@ -431,7 +489,7 @@ Root principle:
 → Auto-fix CI failures
 ```
 
-## 9. Practical Examples
+## 10. Practical Examples
 
 ### Good Example: Split with Vertical Slicing
 
@@ -465,7 +523,7 @@ Total: 1,200 lines, 15 files changed
 → Hard to review, likely abandoned
 ```
 
-## 10. Emergency Response
+## 11. Emergency Response
 
 ```bash
 # Create hotfix branch
@@ -485,7 +543,7 @@ gh pr create \
 
 Important: Don't skip PR even in emergency.
 
-## 11. Purpose of These Rules
+## 12. Purpose of These Rules
 
 ```
 Quality assurance:
