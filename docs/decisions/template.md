@@ -1,38 +1,38 @@
-# ADR-XXXX: [タイトル]
+# ADR-XXXX: [Title]
 
-## ステータス
+## Status
 
-提案中 / 承認済み / 廃止 / 置き換え済み
+Proposed / Approved / Deprecated / Superseded
 
-## コンテキスト
+## Context
 
-なぜこの決定が必要だったか（制約、問題、背景）
+Why this decision was needed (constraints, problem, background)
 
-## 検討した選択肢
+## Alternatives Considered
 
-- **選択肢A**: [説明]
+- **Alternative A**: [Description]
   - pros: [...]
   - cons: [...]
 
-- **選択肢B（採用）**: [説明]
+- **Alternative B (Adopted)**: [Description]
   - pros: [...]
   - cons: [...]
 
-- **選択肢C**: [説明]
+- **Alternative C**: [Description]
   - pros: [...]
   - cons: [...]
 
-## 決定
+## Decision
 
-選択肢Bを採用
+Adopt Alternative B
 
-## 影響
+## Consequences
 
-- **ポジティブ**: [良い影響]
-- **ネガティブ**: [悪い影響、トレードオフ]
-- **リスク**: [潜在的なリスク]
+- **Positive**: [Good impacts]
+- **Negative**: [Bad impacts, trade-offs]
+- **Risks**: [Potential risks]
 
-## 関連資料
+## Related Materials
 
-- [関連ドキュメント]
-- [参考リンク]
+- [Related documents]
+- [Reference links]

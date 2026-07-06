@@ -1,5 +1,5 @@
 ---
-description: バージョン管理 - Git/PR戦略とタスク分割
+description: Version Control - Git/PR Strategy and Task Splitting
 alwaysApply: true
 metadata:
   environments: cloud
@@ -7,465 +7,465 @@ metadata:
 
 # Version Control Rules
 
-Git ワークフロー、PR戦略、タスク分割の統合ルール。
+Integrated rules for Git workflow, PR strategy, and task splitting.
 
-## 1. Git ワークフロー（GitHub Flow）
+## 1. Git Workflow (GitHub Flow)
 
-### ブランチ戦略
+### Branch Strategy
 
 ```
-main（常にデプロイ可能）
-  ├─ cursor/feature-a-0d1c → PR → マージ
-  └─ cursor/feature-b-0d1c → PR → マージ
+main (always deployable)
+  ├─ cursor/feature-a-0d1c → PR → Merge
+  └─ cursor/feature-b-0d1c → PR → Merge
 
-ブランチ命名規則:
+Branch naming convention:
   cursor/<descriptive-name>-0d1c
 
-例:
+Examples:
   cursor/esp32-sensor-integration-0d1c
   cursor/fix-grafana-dashboard-0d1c
 ```
 
-### 基本フロー
+### Basic Flow
 
 ```bash
-# 1. タスク開始
+# 1. Start task
 git checkout main
 git pull origin main
 git checkout -b cursor/<name>-0d1c
 
-# 2. 実装
+# 2. Implement
 # ...
 
-# 3. コミット
+# 3. Commit
 git add <files>
 git commit -m "feat(scope): description"
 
 # 4. Push
 git push -u origin cursor/<name>-0d1c
 
-# 5. PR状態確認（重要）
+# 5. Check PR status (important)
 gh pr list --head cursor/<name>-0d1c
 
-# 6. PR作成
+# 6. Create PR
 gh pr create --title "..." --body "..." --draft
 
-# 7. マージ後
+# 7. After merge
 git checkout main
 git pull origin main
 git branch -d cursor/<name>-0d1c
 ```
 
-### 禁止事項
+### Prohibitions
 
 ```
-1. mainへの直接push
+1. Direct push to main
 2. Force push to main
-3. PRのスキップ
-4. ブランチ命名規則違反
-5. マージ済みブランチの再利用
-6. PR状態確認の省略
+3. Skipping PRs
+4. Branch naming rule violations
+5. Reusing merged branches
+6. Skipping PR status check
 ```
 
-## 2. PR戦略
+## 2. PR Strategy
 
-### PRサイズ制約
-
-```
-推奨サイズ:
-  - 200-400行の変更
-  - 5-10ファイル以内
-  - レビュー時間: 15-20分以内
-
-超過時:
-  - 実装を停止
-  - 次のPRに分割
-  - 分割計画を再提案
-
-根拠（MSR 2026研究）:
-  - 小規模PR（300行未満）はマージ率が高い
-  - CI失敗はマージ確率を15%低下
-  - AI PRは平均51%大きく、放棄されやすい
-```
-
-### 1 PR = 1論理的変更
+### PR Size Constraints
 
 ```
-各PRは以下のいずれか1つのみ:
-  - 新機能の追加
-  - バグ修正
-  - リファクタリング
-  - ドキュメント更新
-  - テスト追加
+Recommended size:
+  - 200-400 lines of changes
+  - ≤ 5-10 files
+  - Review time: ≤ 15-20 minutes
 
-混ぜない:
-  - リファクタリング + 新機能
-  - フォーマット修正 + ロジック変更
-  - ドキュメント + 実装
+When exceeded:
+  - Stop implementation
+  - Split into next PR
+  - Re-propose split plan
+
+Rationale (MSR 2026 research):
+  - Small PRs (<300 lines) have higher merge rates
+  - CI failure lowers merge probability by 15%
+  - AI PRs are 51% larger on average, more likely abandoned
 ```
 
-### 垂直スライス（Vertical Slicing）
+### 1 PR = 1 Logical Change
 
 ```
-コードを書く前に分割計画を立てる:
+Each PR should contain only one of:
+  - New feature
+  - Bug fix
+  - Refactoring
+  - Documentation update
+  - Test addition
 
-タスク受領
+Don't mix:
+  - Refactoring + New feature
+  - Format fix + Logic change
+  - Documentation + Implementation
+```
+
+### Vertical Slicing
+
+```
+Plan split before writing code:
+
+Receive task
   ↓
-依存関係を分析
+Analyze dependencies
   ↓
-分割計画を提案（各PR: 200-400行）
+Propose split plan (each PR: 200-400 lines)
   ↓
-ユーザー承認
+User approval
   ↓
-PR単位で実装
+Implement per PR
 ```
 
-## 3. 依存関係の判断
+## 3. Dependency Judgment
 
-### 技術的依存（スタックPR必須）
+### Technical Dependencies (Stacked PR Required)
 
 ```
-例1: データベーススキーマ変更
-  PR 1: users テーブルに email 列追加
-  PR 2: email を使った認証機能
+Example 1: Database schema change
+  PR 1: Add email column to users table
+  PR 2: Authentication feature using email
   
-  → PR 2 は PR 1 なしで動作不可
-  → スタックPR
+  → PR 2 cannot work without PR 1
+  → Stacked PR
 
-例2: API削除
-  PR 1: 新エンドポイント追加
-  PR 2: 旧エンドポイント削除
+Example 2: API removal
+  PR 1: Add new endpoint
+  PR 2: Remove old endpoint
   
-  → 段階的移行が必要
-  → スタックPR
+  → Gradual migration needed
+  → Stacked PR
 ```
 
-### 論理的依存（並列PR可能）
+### Logical Dependencies (Parallel PRs Possible)
 
 ```
-例: ユーザー管理機能
+Example: User management feature
 
-疎結合な設計:
-  PR 1: User インターフェース定義
-  PR 2: UserService 実装（モック使用）
-  PR 3: UserController 実装（モック使用）
-  PR 4: 統合（すべてを接続）
+Loosely coupled design:
+  PR 1: Define User interface
+  PR 2: Implement UserService (use mocks)
+  PR 3: Implement UserController (use mocks)
+  PR 4: Integration (connect all)
   
-  → PR 1-3 は並列レビュー可能
+  → PRs 1-3 can be reviewed in parallel
 ```
 
-### 判断基準
+### Judgment Criteria
 
 ```
-技術的依存あり → スタックPR
-論理的依存のみ → 疎結合化を検討
-疎結合化が不自然 → スタックPR
+Technical dependency exists → Stacked PR
+Only logical dependency → Consider loose coupling
+Loose coupling unnatural → Stacked PR
 
-無理に分離しない
+Don't force separation
 ```
 
-## 4. スタックPR
+## 4. Stacked PRs
 
-### 構造
+### Structure
 
 ```
 main
- ├─ PR 1: 基盤（base: main）
-     └─ PR 2: 機能A（base: PR 1のブランチ）
-         └─ PR 3: 機能B（base: PR 2のブランチ）
+ ├─ PR 1: Foundation (base: main)
+     └─ PR 2: Feature A (base: PR 1's branch)
+         └─ PR 3: Feature B (base: PR 2's branch)
 
-マージ順序: PR 1 → PR 2 → PR 3（根元から）
+Merge order: PR 1 → PR 2 → PR 3 (from root)
 ```
 
-### マージフロー
+### Merge Flow
 
 ```
-ステップ1: PR 1 レビュー＆マージ
+Step 1: Review & merge PR 1
   main ← PR 1
   
-ステップ2: PR 2 の base を変更
-  gh pr edit <PR 2番号> --base main
+Step 2: Change PR 2's base
+  gh pr edit <PR 2 number> --base main
   
-  理由: PR 1 のブランチはもう存在しない
+  Reason: PR 1's branch no longer exists
   
-ステップ3: PR 2 レビュー＆マージ
+Step 3: Review & merge PR 2
   main ← PR 2
   
-（以降繰り返し）
+(Repeat)
 ```
 
-## 5. コミット規約
+## 5. Commit Conventions
 
 ### Conventional Commits
 
 ```
 <type>(<scope>): <subject>
 
-<body>（オプション）
+<body> (optional)
 
-<footer>（オプション）
+<footer> (optional)
 
 Type:
-  feat: 新機能
-  fix: バグ修正
-  docs: ドキュメント
-  refactor: リファクタリング
-  test: テスト追加
-  chore: ビルド・設定
+  feat: new feature
+  fix: bug fix
+  docs: documentation
+  refactor: refactoring
+  test: add tests
+  chore: build/config
 
-日本語OK
+English preferred, Japanese acceptable
 ```
 
-## 6. PR作成前チェックリスト
+## 6. Pre-PR Checklist
 
 ```
-必須確認:
-  - [ ] gh pr list --head <branch> でPR状態確認済み
-  - [ ] ブランチ名が規則準拠（cursor/*-0d1c）
-  - [ ] マージ済みブランチを再利用していない
-  - [ ] コミットメッセージがConventional Commits形式
-  - [ ] PRサイズが200-400行以内
-  - [ ] 1 PR = 1論理的変更
-  - [ ] 変更内容を簡潔に説明できる
-  - [ ] 関連ドキュメントを更新した
+Required checks:
+  - [ ] PR status checked with gh pr list --head <branch>
+  - [ ] Branch name follows rules (cursor/*-0d1c)
+  - [ ] Not reusing merged branch
+  - [ ] Commit messages follow Conventional Commits
+  - [ ] PR size ≤ 200-400 lines
+  - [ ] 1 PR = 1 logical change
+  - [ ] Can explain changes concisely
+  - [ ] Related documentation updated
 ```
 
-## 7. 操作前の必須確認（再発防止）
+## 7. Pre-Operation Checks (Recurrence Prevention)
 
-### コミット前の必須確認
+### Pre-Commit Check
 
 ```bash
-# 必ず実行
+# Always execute
 git branch --show-current
 
-# mainブランチの場合
-→ コミットを中止
-→ Level 1エラーとして即座に報告
-→ 正しいfeatureブランチに切り替え
+# If on main branch
+→ Abort commit
+→ Report as Level 1 error immediately
+→ Switch to correct feature branch
 ```
 
-### Git操作の必須パラメータ（ADR-0003）
+### Mandatory Git Operation Parameters (ADR-0003)
 
-すべてのGit操作で `working_directory` を明示:
+Explicitly specify `working_directory` for all Git operations:
 
 ```python
 Shell(
   command="git checkout -b cursor/feature-0d1c",
-  working_directory="/workspace"  # 必須
+  working_directory="/workspace"  # Required
 )
 
 Shell(
   command="git branch --show-current",
-  working_directory="/workspace"  # 必須
+  working_directory="/workspace"  # Required
 )
 ```
 
-理由:
-- Shellツールの状態依存を回避
-- PR #40-42で問題が発生（ADR-0003参照）
+Reason:
+- Avoid Shell tool state dependency
+- Problem occurred in PR #40-42 (see ADR-0003)
 
-禁止:
-- working_directoryを省略
-- cd /workspace && の連結（エラーが起きやすい）
+Forbidden:
+- Omitting working_directory
+- Chaining with cd /workspace && (error-prone)
 
-### mainブランチ誤操作の検知と対応
+### Main Branch Error Detection and Response
 
 ```
-検知タイミング:
-  - git commitを実行する直前
-  - git pushを実行する直前
+Detection timing:
+  - Immediately before git commit
+  - Immediately before git push
 
-検知時の動作:
-  1. 即座に操作を中止
-  2. ユーザーに報告（Level 1エラー）
-  3. 修正手順を提案
+On detection:
+  1. Abort operation immediately
+  2. Report to user (Level 1 error)
+  3. Propose fix steps
 
-報告テンプレート:
-  「問題が発生しました。
+Report template:
+  "A problem occurred.
   
-   検知: mainブランチへのコミット試行
-   状態: コミットは実行していません
-   対処: featureブランチを作成します
+   Detected: Commit attempt to main branch
+   Status: Commit not executed
+   Action: Will create feature branch
    
-   次のステップ:
+   Next steps:
    1. git checkout -b cursor/<name>-0d1c
-   2. 変更を再コミット」
+   2. Re-commit changes"
 ```
 
-### PR作成失敗時の診断フロー
+### PR Creation Failure Diagnostic Flow
 
 ```
-失敗パターン1: "No open PR found"
-  原因: PRがすでにマージ済み、または存在しない
-  対処: 新しいPRを作成
+Failure pattern 1: "No open PR found"
+  Cause: PR already merged or doesn't exist
+  Action: Create new PR
 
-失敗パターン2: "GraphQL: Resource not accessible"
-  原因: gh CLIの権限制限
-  対処: ManagePullRequestツールを使用
+Failure pattern 2: "GraphQL: Resource not accessible"
+  Cause: gh CLI permission restriction
+  Action: Use ManagePullRequest tool
 
-失敗パターン3: "aborted: you must first push"
-  原因: ブランチがリモートに存在しない
-  対処: git push -u origin <branch>
+Failure pattern 3: "aborted: you must first push"
+  Cause: Branch doesn't exist on remote
+  Action: git push -u origin <branch>
 
-ツール選択基準:
-  PR作成: ManagePullRequestツール（優先）
-  PR更新: ManagePullRequestツール
-  PR確認: gh pr list（問題なし）
-  PR情報取得: gh pr view（問題なし）
+Tool selection criteria:
+  PR creation: ManagePullRequest tool (preferred)
+  PR update: ManagePullRequest tool
+  PR check: gh pr list (fine)
+  PR info: gh pr view (fine)
 ```
 
-### エラー報告トリガー（自動判定）
+### Error Reporting Triggers (Auto-determined)
 
 ```
-Level 1（必ず即座に報告）:
-  - mainブランチでのgit commit試行
-  - mainブランチでのgit push試行
-  - force push to main試行
-  - 同じ操作の3回目の失敗
+Level 1 (Always report immediately):
+  - git commit attempt on main branch
+  - git push attempt on main branch
+  - force push to main attempt
+  - 3rd failure of same operation
 
-Level 2（状況に応じて報告）:
-  - PR作成の1回目の失敗（診断後に報告）
-  - 同じ操作の2回目の失敗
+Level 2 (Report as appropriate):
+  - 1st PR creation failure (report after diagnosis)
+  - 2nd failure of same operation
 
-Level 3（報告不要）:
-  - 1回で成功した操作
-  - 読み取り専用操作
+Level 3 (No report needed):
+  - Operation succeeded on 1st try
+  - Read-only operation
 ```
 
-### 実装例: コミット前の自動確認
+### Implementation Example: Pre-Commit Auto-Check
 
 ```bash
-# AI Agentが内部的に実行する確認
+# Check AI Agent executes internally
 CURRENT_BRANCH=$(git branch --show-current)
 
 if [ "$CURRENT_BRANCH" = "main" ]; then
-  echo "ERROR: mainブランチへの直接コミットは禁止"
-  echo "現在のブランチ: $CURRENT_BRANCH"
+  echo "ERROR: Direct commit to main branch prohibited"
+  echo "Current branch: $CURRENT_BRANCH"
   echo ""
-  echo "対処方法:"
+  echo "Action:"
   echo "1. git checkout -b cursor/<descriptive-name>-0d1c"
-  echo "2. 変更を再コミット"
+  echo "2. Re-commit changes"
   exit 1
 fi
 
-# 確認OK → コミット実行
+# Check OK → Execute commit
 git commit -m "..."
 ```
 
-### 過去の実例から学ぶ
+### Learn from Past Examples
 
 ```
-実例（2026-07-05）:
-  問題: mainブランチに直接コミット
-  原因: featureブランチ作成後、mainに戻ってしまった
-  結果: PR作成不可（mainからmainへのPRは作成不可）
+Example (2026-07-05):
+  Problem: Direct commit to main branch
+  Cause: Returned to main after creating feature branch
+  Result: Cannot create PR (cannot PR from main to main)
   
-  再発防止:
-  1. コミット前に必ずgit branch --show-current
-  2. mainを検知したら即座に中止＆報告
-  3. PR作成はManagePullRequestツール優先
+  Recurrence prevention:
+  1. Always git branch --show-current before commit
+  2. If main detected, abort immediately & report
+  3. PR creation prioritizes ManagePullRequest tool
 
-根本原則:
-  「気をつける」ではなく「構造的に防ぐ」
+Root principle:
+  "Structurally prevent" not "be careful"
 ```
 
-## 8. Cursor機能の活用
+## 8. Utilizing Cursor Features
 
-### /worktree（並列タスク）
+### /worktree (Parallel Tasks)
 
 ```bash
-# 疎結合な設計の場合
-/worktree 「インターフェース定義」
-/worktree 「サービス実装（モック使用）」
-/worktree 「コントローラ実装（モック使用）」
+# For loosely coupled design
+/worktree "Define interface"
+/worktree "Implement service (use mocks)"
+/worktree "Implement controller (use mocks)"
 
-→ 各タスクが独立したPRになる
+→ Each task becomes independent PR
 ```
 
-### /babysit（PR改善ループ）
+### /babysit (PR Improvement Loop)
 
 ```bash
-/babysit 「PR #XX をCI通過まで改善」
+/babysit "Improve PR #XX until CI passes"
 
-→ レビューコメントに自動対応
-→ CI失敗を自動修正
+→ Auto-respond to review comments
+→ Auto-fix CI failures
 ```
 
-## 9. 実践例
+## 9. Practical Examples
 
-### 良い例: 垂直スライスで分割
-
-```
-タスク: 「水温センサー統合」
-
-分割計画:
-  PR 1: DS18B20データモデル（150行）
-  PR 2: センサー読み取り関数（200行）
-  PR 3: エラーハンドリング（180行）
-  PR 4: 統合テスト（220行）
-
-各PRは独立してレビュー可能
-合計: 750行 → 4つの小PRに分割
-```
-
-### 悪い例: 1つの巨大PR
+### Good Example: Split with Vertical Slicing
 
 ```
-タスク: 「水温センサー統合」
+Task: "Water temperature sensor integration"
 
-1つのPR:
-  - データモデル
-  - センサー読み取り
-  - エラーハンドリング
-  - テスト
-  - ついでにリファクタリング
-  - ついでにドキュメント更新
+Split plan:
+  PR 1: DS18B20 data model (150 lines)
+  PR 2: Sensor reading function (200 lines)
+  PR 3: Error handling (180 lines)
+  PR 4: Integration tests (220 lines)
 
-合計: 1,200行、15ファイル変更
-→ レビュー困難、放棄されやすい
+Each PR independently reviewable
+Total: 750 lines → Split into 4 small PRs
 ```
 
-## 10. 緊急時の対応
+### Bad Example: One Giant PR
+
+```
+Task: "Water temperature sensor integration"
+
+One PR:
+  - Data model
+  - Sensor reading
+  - Error handling
+  - Tests
+  - Incidental refactoring
+  - Incidental documentation update
+
+Total: 1,200 lines, 15 files changed
+→ Hard to review, likely abandoned
+```
+
+## 10. Emergency Response
 
 ```bash
-# Hotfixブランチ作成
+# Create hotfix branch
 git checkout -b cursor/hotfix-critical-issue-0d1c
 
-# 最小限の修正
+# Minimal fix
 # ...
 
-# PR作成（緊急であることを明記）
+# Create PR (clarify emergency)
 gh pr create \
   --title "HOTFIX: Critical production issue" \
   --body "Immediate fix required." \
   --label "hotfix"
 
-# 事後レビュー必須
+# Post-review required
 ```
 
-重要: 緊急時でもPRは省略しない。
+Important: Don't skip PR even in emergency.
 
-## 11. このルールの目的
+## 11. Purpose of These Rules
 
 ```
-品質保証:
-  - PRレビューで問題を早期発見
-  - 小規模PRで精度向上
+Quality assurance:
+  - Early issue detection in PR review
+  - Higher precision with small PRs
 
-トレーサビリティ:
-  - すべての変更がPRに記録
-  - なぜその変更をしたかが明確
+Traceability:
+  - All changes recorded in PRs
+  - Clear why changes were made
 
-安全性:
-  - mainへの誤操作を防止
-  - ロールバックが容易
+Safety:
+  - Prevent main misoperations
+  - Easy rollback
 
-プロフェッショナリズム:
-  - 業界標準のワークフロー
-  - チーム開発への即応力
+Professionalism:
+  - Industry-standard workflow
+  - Ready for team development
 ```
 
-## 参考資料
+## References
 
 - MSR 2026: "What 33,000 Agentic Pull Requests Reveal"
 - GitHub Flow: https://docs.github.com/en/get-started/using-github/github-flow

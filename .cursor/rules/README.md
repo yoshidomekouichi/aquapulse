@@ -1,213 +1,213 @@
 # AquaPulse Rules
 
-このディレクトリは、AIエージェントとの開発におけるルールを管理します。
+This directory manages rules for AI agent development.
 
-## ルール構造
+## Rule Structure
 
 ```
 .cursor/rules/
-├─ README.md                # このファイル
-├─ 00-base.mdc              # プロジェクト基盤
-├─ 10-collaboration.mdc     # 人間とAIの協働
-└─ 20-version-control.mdc   # Git/PR戦略
+├─ README.md                # This file
+├─ 00-base.mdc              # Project foundation
+├─ 10-collaboration.mdc     # Human-AI collaboration
+└─ 20-version-control.mdc   # Git/PR strategy
 ```
 
-## ロード順序
+## Load Order
 
-数値プレフィックスでロード順序を制御:
-- `00-` が最初（基盤）
-- `20-` が最後（詳細）
-- 後のファイルが優先（競合時）
+Numeric prefixes control load order:
+- `00-` loads first (foundation)
+- `20-` loads last (details)
+- Later files take precedence (on conflict)
 
-## 各ファイルの役割
+## Role of Each File
 
-### 00-base.mdc（プロジェクト基盤）
-
-```
-内容:
-  - プロジェクト概要（AquaPulse: 淡水水槽モニタリング）
-  - 技術スタック（ESP32, GCP, Terraform）
-  - ハードウェア制約（センサー固定、USB物理接続必須）
-  - コード規約（Python: Black + isort）
-  - 絶対に守るべきルール
-
-適用: すべてのセッション
-更新頻度: 稀（プロジェクト構造変更時のみ）
-```
-
-### 10-collaboration.mdc（人間とAIの協働）
+### 00-base.mdc (Project Foundation)
 
 ```
-内容:
-  1. 対話的開発
-     - 説明してから実装
-     - 選択肢を提示
-     - 意思決定ゲート（3つ）
+Contents:
+  - Project overview (AquaPulse: freshwater aquarium monitoring)
+  - Tech stack (ESP32, GCP, Terraform)
+  - Hardware constraints (sensors fixed, USB physical connection required)
+  - Code conventions (Python: Black + isort)
+  - Absolute rules
+
+Application: All sessions
+Update frequency: Rare (only on project structure changes)
+```
+
+### 10-collaboration.mdc (Human-AI Collaboration)
+
+```
+Contents:
+  1. Interactive Development
+     - Explain before implementing
+     - Present options
+     - Decision gates (3 types)
   
-  2. コミュニケーション
-     - 確証バイアスの回避
-     - フラットな評価
-     - 技術的正確性を優先
+  2. Communication
+     - Avoid confirmation bias
+     - Flat evaluation
+     - Prioritize technical accuracy
   
-  3. エラー透明性
-     - Level 1-3 エラー報告
-     - 重要操作前の確認
-     - 試行錯誤の透明性
+  3. Error Transparency
+     - Level 1-3 error reporting
+     - Pre-operation checks
+     - Trial-and-error transparency
 
-適用: すべてのセッション
-更新頻度: 低（スタンス変更時のみ）
+Application: All sessions
+Update frequency: Low (only on stance changes)
 ```
 
-### 20-version-control.mdc（Git/PR戦略）
+### 20-version-control.mdc (Git/PR Strategy)
 
 ```
-内容:
-  1. Git ワークフロー（GitHub Flow）
-     - ブランチ戦略
-     - コミット規約
-     - 禁止事項
+Contents:
+  1. Git Workflow (GitHub Flow)
+     - Branch strategy
+     - Commit conventions
+     - Prohibitions
   
-  2. PR戦略
-     - PRサイズ制約（200-400行）
-     - 垂直スライス
-     - 1 PR = 1論理的変更
+  2. PR Strategy
+     - PR size constraints (200-400 lines)
+     - Vertical slicing
+     - 1 PR = 1 logical change
   
-  3. 依存関係の判断
-     - 技術的依存 vs 論理的依存
-     - スタックPR vs 並列PR
+  3. Dependency Judgment
+     - Technical vs logical dependencies
+     - Stacked vs parallel PRs
 
-適用: Git/PR操作時
-更新頻度: 低（ワークフロー変更時のみ）
+Application: Git/PR operations
+Update frequency: Low (only on workflow changes)
 ```
 
-## ルール管理の原則
+## Rule Management Principles
 
-### 1. 適切なサイズを保つ
-
-```
-推奨:
-  - 各ファイル: 100-500行
-  - 合計: 2,000トークン以下
-
-超過時:
-  - サブディレクトリに分割
-  - 詳細は別ファイルに参照
-```
-
-### 2. 重複を避ける
+### 1. Maintain Appropriate Size
 
 ```
-NG: 同じ内容を複数ファイルに記載
-OK: 1箇所に記載、他は参照
+Recommended:
+  - Each file: 100-500 lines
+  - Total: ≤ 2,000 tokens
+
+When exceeded:
+  - Split into subdirectories
+  - Reference details in separate files
 ```
 
-### 3. 具体的に書く
+### 2. Avoid Duplication
 
 ```
-NG: 「良いコードを書く」
-OK: 「関数は50行以下、1つの責務のみ」
+NG: Same content in multiple files
+OK: Write once, reference elsewhere
 ```
 
-### 4. バランスを保つ
+### 3. Be Specific
 
 ```
-過度なルール化を避ける:
-  - すべてを規定しない
-  - 創造性の余地を残す
-  - 判断を信頼する
+NG: "Write good code"
+OK: "Functions ≤ 50 lines, single responsibility"
 ```
 
-## 新しいルールの追加
-
-### ステップ1: 分類
+### 4. Maintain Balance
 
 ```
-どのレイヤーに属するか判断:
-  - 基盤（00-）: プロジェクト固有の制約
-  - コア（10-20）: 開発スタンス、コミュニケーション
-  - プロセス（30-40）: Git、PR、デプロイ
-  - ドメイン（50-60）: 技術固有（ESP32、GCP等）
+Avoid excessive rules:
+  - Don't specify everything
+  - Leave room for creativity
+  - Trust judgment
 ```
 
-### ステップ2: 既存ファイルに追加 or 新規作成
+## Adding New Rules
+
+### Step 1: Classify
 
 ```
-判断基準:
-  - 既存ファイルに関連性がある → 追加
-  - 新しい領域 → 新規作成
-  - ファイルが500行超過 → 分割検討
+Determine which layer:
+  - Foundation (00-): Project-specific constraints
+  - Core (10-20): Development stance, communication
+  - Process (30-40): Git, PR, deployment
+  - Domain (50-60): Technology-specific (ESP32, GCP, etc.)
 ```
 
-### ステップ3: PR作成
+### Step 2: Add to Existing or Create New
 
 ```
-必須事項:
-  - 変更理由
-  - 影響範囲
-  - 使用例
+Criteria:
+  - Related to existing file → Add
+  - New area → Create new
+  - File exceeds 500 lines → Consider splitting
 ```
 
-## トラブルシューティング
-
-### Q: ルールが適用されない
+### Step 3: Create PR
 
 ```
-確認事項:
-  1. YAML frontmatter が正しいか
-  2. alwaysApply: true になっているか
-  3. metadata.environments: cloud が設定されているか
+Required:
+  - Reason for change
+  - Impact scope
+  - Usage examples
 ```
 
-### Q: ルールが競合している
+## Troubleshooting
+
+### Q: Rules not applying
 
 ```
-解決策:
-  1. 数値プレフィックスを確認（後が優先）
-  2. より具体的なルールを後に配置
-  3. 重複を削除
+Check:
+  1. YAML frontmatter correct?
+  2. alwaysApply: true set?
+  3. metadata.environments: cloud configured?
 ```
 
-### Q: ファイルが多すぎる
+### Q: Rules conflicting
 
 ```
-推奨数: 5-8ファイル
-
-超過時:
-  - 関連ルールを統合
-  - 使用頻度の低いルールを削除
-  - サブディレクトリに整理
+Solutions:
+  1. Check numeric prefixes (later takes precedence)
+  2. Place more specific rules later
+  3. Remove duplicates
 ```
 
-## 競合解決戦略
+### Q: Too many files
 
 ```
-複数のルールが競合する場合:
+Recommended: 5-8 files
 
-1. 後のファイルが優先
+When exceeded:
+  - Consolidate related rules
+  - Remove infrequently used rules
+  - Organize into subdirectories
+```
+
+## Conflict Resolution Strategy
+
+```
+When multiple rules conflict:
+
+1. Later file takes precedence
    00-base.mdc < 40-pr-strategy.mdc
 
-2. より具体的なルールが優先
-   全般的ルール < ドメイン固有ルール
+2. More specific rule takes precedence
+   General rule < Domain-specific rule
 
-3. セキュリティ優先（deny-wins）
-   許可ルール < 禁止ルール
+3. Security first (deny-wins)
+   Permission rule < Prohibition rule
 ```
 
-## 定期レビュー
+## Periodic Review
 
 ```
-月次レビュー:
-  - 使われていないルールを削除
-  - 頻繁に違反されるルールを見直し
-  - 新しいパターンをルール化
+Monthly review:
+  - Remove unused rules
+  - Review frequently violated rules
+  - Formalize new patterns
 
-四半期レビュー:
-  - ファイル構造の見直し
-  - サイズの最適化
-  - 重複の削除
+Quarterly review:
+  - Review file structure
+  - Optimize size
+  - Remove duplicates
 ```
 
-## 参考資料
+## References
 
 - [Cursor Rules Best Practices (2026)](https://www.morphllm.com/cursor-rules-best-practices)
 - [CLAUDE.md Convention](https://agentpatterns.ai/instructions/claude-md-convention/)
@@ -215,4 +215,4 @@ OK: 「関数は50行以下、1つの責務のみ」
 
 ---
 
-最終更新: 2026-07-05
+Last updated: 2026-07-05

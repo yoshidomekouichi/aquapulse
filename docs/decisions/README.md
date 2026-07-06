@@ -1,53 +1,53 @@
-# 意思決定記録（Architecture Decision Records）
+# Architecture Decision Records (ADR)
 
-このディレクトリには、AquaPulseプロジェクトの重要な技術的・アーキテクチャ的決定を記録します。
+This directory records important technical and architectural decisions for the AquaPulse project.
 
-## なぜADRを書くのか
+## Why Write ADRs
 
-- **プロジェクト固有のコンテキストを保存**: ネット検索では分からない「なぜこの選択をしたのか」を記録
-- **同じ議論の繰り返しを防ぐ**: 「なぜこうなっているのか」を毎回説明する必要がない
-- **新しいAIセッションへのオンボーディング**: コンテキスト喪失を防ぐ
-- **意思決定の振り返り**: 「あの判断は正しかったか」を検証
+- **Preserve project-specific context**: Record "why this choice" that web search cannot answer
+- **Prevent repeated discussions**: No need to explain "why it is this way" every time
+- **Onboard new AI sessions**: Prevent context loss
+- **Review decisions**: Verify "was that decision correct"
 
-## ADRを書くタイミング
+## When to Write an ADR
 
-以下の条件を満たす決定に対してADRを作成:
+Create ADR for decisions that meet these conditions:
 
-- **取り戻すのが難しい決定**: アーキテクチャの変更、技術スタックの選択
-- **複数の選択肢を検討した決定**: トレードオフが明確
-- **将来の決定に影響する決定**: 他の選択肢を制約する
-- **なぜそうしたのか説明が必要な決定**: 一見奇妙に見える選択
+- **Hard-to-reverse decisions**: Architecture changes, tech stack choices
+- **Decisions with multiple alternatives considered**: Clear trade-offs
+- **Decisions affecting future choices**: Constrain other options
+- **Decisions needing explanation**: Choices that may seem strange at first glance
 
-**書かなくていい決定**: 
-- 1スプリントで取り戻せる選択
-- 明らかな選択（例: JSONライブラリの選択）
-- 個人的な好み
+**Don't write ADRs for**:
+- Choices reversible in one sprint
+- Obvious choices (e.g., JSON library selection)
+- Personal preferences
 
-## アクティブな決定
+## Active Decisions
 
-- [ADR-0003](2026-07-05-shell-working-directory.md): ShellツールでのGit操作におけるworking_directory明示（承認済み）
-- [ADR-0002](2026-07-05-archive-directory-structure.md): アーカイブディレクトリ構造（承認済み）
-- [ADR-0001](2026-07-05-migrate-to-esp32-gcp.md): Raspberry PiからESP32+GCPへの移行（承認済み）
+- [ADR-0003](2026-07-05-shell-working-directory.md): Explicit working_directory in Shell tool Git operations (Approved)
+- [ADR-0002](2026-07-05-archive-directory-structure.md): Archive directory structure (Approved)
+- [ADR-0001](2026-07-05-migrate-to-esp32-gcp.md): Migration from Raspberry Pi to ESP32+GCP (Approved)
 
-## 置き換え済み
+## Superseded
 
-なし
+None
 
-## 書き方
+## How to Write
 
-1. [template.md](template.md)をコピー
-2. ファイル名: `YYYY-MM-DD-title.md`
-3. 5-10分で書く（これ以上なら詳細すぎる）
-4. このREADMEに追加
+1. Copy [template.md](template.md)
+2. Filename: `YYYY-MM-DD-title.md`
+3. Write in 5-10 minutes (longer = too detailed)
+4. Add to this README
 
-## ステータスの意味
+## Status Meanings
 
-- **提案中**: 議論中、まだ決定していない
-- **承認済み**: 採用された決定
-- **廃止**: もう使わない決定（理由を記録）
-- **置き換え済み**: 新しいADRに置き換えられた（リンクを記載）
+- **Proposed**: Under discussion, not yet decided
+- **Approved**: Adopted decision
+- **Deprecated**: No longer used (record reason)
+- **Superseded**: Replaced by new ADR (include link)
 
-## 参考資料
+## References
 
-- [MADR（Markdown Any Decision Records）](https://adr.github.io/madr/)
+- [MADR (Markdown Any Decision Records)](https://adr.github.io/madr/)
 - [Architecture Decision Records - ThoughtWorks](https://www.thoughtworks.com/radar/techniques/lightweight-architecture-decision-records)
