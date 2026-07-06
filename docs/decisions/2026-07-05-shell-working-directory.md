@@ -1,34 +1,34 @@
-# ADR-0003: ShellツールでのGit操作におけるworking_directory明示
+# ADR-0003: Explicit working_directory in Shell Tool Git Operations
 
-## ステータス
+## Status
 
-承認済み（2026-07-05）
+Approved (2026-07-05)
 
-## コンテキスト
+## Context
 
-PR #40-42の作成中、`git branch --show-current` が正しいブランチを返さず、意図しないブランチで作業してしまう問題が発生しました。
+During PR #40-42 creation, `git branch --show-current` did not return the correct branch, causing work on unintended branch.
 
-具体的な問題:
-- `git checkout -b cursor/add-adr-v3-0d1c` を実行
-- しかし `git branch --show-current` が `main` や別のブランチ名を返す
-- 結果、mainブランチに直接コミットしてしまう（禁止事項違反）
+Specific problem:
+- Executed `git checkout -b cursor/add-adr-v3-0d1c`
+- But `git branch --show-current` returned `main` or different branch name
+- Result: Direct commit to main branch (prohibited)
 
-原因:
-- Shellツールの `working_directory` パラメータを指定していなかった
-- 前回のコマンドの状態に依存してしまった
+Cause:
+- Did not specify Shell tool's `working_directory` parameter
+- Depended on previous command's state
 
-## 検討した選択肢
+## Alternatives Considered
 
-### 1. 毎回 `cd /workspace &&` を使用
+### 1. Use `cd /workspace &&` Every Time
 
 ```bash
 Shell(command="cd /workspace && git checkout -b ...")
 ```
 
-- pros: 動作する、以前成功していた
-- cons: 冗長、エラーが起きやすい（&&の連結）
+- pros: Works, previously successful
+- cons: Verbose, error-prone (&& chaining)
 
-### 2. working_directory パラメータを明示（採用）
+### 2. Explicitly Specify working_directory Parameter (Adopted)
 
 ```python
 Shell(
@@ -37,38 +37,38 @@ Shell(
 )
 ```
 
-- pros: 明確、Shellツールの正しい使い方、状態依存を回避
-- cons: 毎回パラメータ指定が必要
+- pros: Clear, correct Shell tool usage, avoids state dependency
+- cons: Parameter specification required every time
 
-### 3. 何もしない
+### 3. Do Nothing
 
-- cons: 問題が再発する
+- cons: Problem recurs
 
-## 決定
+## Decision
 
-**すべてのGit操作で `working_directory="/workspace"` を明示**
+**Explicitly specify `working_directory="/workspace"` for all Git operations**
 
-理由:
-- Shellツールの状態依存を構造的に回避
-- より明示的で理解しやすい
-- ツールの正しい使用法
+Reasons:
+- Structurally avoid Shell tool state dependency
+- More explicit and understandable
+- Correct tool usage
 
-## 影響
+## Consequences
 
-### ポジティブ
-- Git操作の誤りを構造的に防止
-- コードレビューで確認しやすい
-- 他のShellコマンドにも適用可能
+### Positive
+- Structurally prevent Git operation errors
+- Easy to verify in code review
+- Applicable to other Shell commands
 
-### ネガティブ
-- 毎回パラメータ指定が必要（冗長）
-- コード量が若干増加
+### Negative
+- Parameter specification required every time (verbose)
+- Slightly increased code volume
 
-### リスク
-- ルールを忘れた場合、問題が再発
-- → 20-version-control.mdcでルール化
+### Risks
+- Problem recurs if rule forgotten
+- → Formalized in 20-version-control.mdc
 
-## 関連資料
+## Related Materials
 
-- [20-version-control.mdc](../../.cursor/rules/20-version-control.mdc)（Git操作の必須パラメータ）
-- PR #40-42（問題が発生したPR）
+- [20-version-control.mdc](../../.cursor/rules/20-version-control.mdc) (Mandatory parameters for Git operations)
+- PR #40-42 (PRs where problem occurred)

@@ -1,23 +1,23 @@
-# ADR-0002: アーカイブディレクトリ構造の採用
+# ADR-0002: Adoption of Archive Directory Structure
 
-## ステータス
+## Status
 
-承認済み（2026-07-05）
+Approved (2026-07-05)
 
-## コンテキスト
+## Context
 
-ESP32+GCPへの移行（ADR-0001）により、既存のRaspberry Pi向けファイル（docker-compose.yml、Python スクリプト等）は実際に動作するファイルではなくなります。
+Migration to ESP32+GCP (ADR-0001) means existing Raspberry Pi files (docker-compose.yml, Python scripts, etc.) will no longer be operational files.
 
-しかし、これらのファイルには以下の価値があります:
-- 参考資料として将来の実装に役立つ
-- プロジェクトの歴史を保存
-- 設計判断の記録
+However, these files have value:
+- Useful as reference for future implementations
+- Preserve project history
+- Record design decisions
 
-既存ファイルをどう管理するか、新しいアーキテクチャのファイルをどう配置するかを決定する必要がありました。
+Need to decide how to manage existing files and where to place new architecture files.
 
-## 検討した選択肢
+## Alternatives Considered
 
-### 1. アーカイブディレクトリ（採用）
+### 1. Archive Directory (Adopted)
 
 ```
 aquapulse/
@@ -31,63 +31,63 @@ aquapulse/
 └─ docs/
 ```
 
-- pros: 参照しやすい、Git履歴が残る、明確な分離
-- cons: ディレクトリ構造が変わる
+- pros: Easy to reference, Git history preserved, clear separation
+- cons: Directory structure changes
 
-### 2. Gitタグ + 削除
+### 2. Git Tag + Deletion
 
 ```
 git tag v1.0-raspberry-pi
-（既存ファイル削除）
+(Delete existing files)
 ```
 
-- pros: ルートがクリーン、新アーキテクチャに集中
-- cons: 参照が面倒（タグをチェックアウト必要）、初心者に分かりにくい
+- pros: Clean root, focus on new architecture
+- cons: Cumbersome to reference (need to checkout tag), confusing for beginners
 
-### 3. ブランチ分離
+### 3. Branch Separation
 
 ```
-legacy/raspberry-pi: 旧アーキテクチャ
-main: 新アーキテクチャ
+legacy/raspberry-pi: Old architecture
+main: New architecture
 ```
 
-- pros: 完全な分離
-- cons: ブランチ切り替えが必要、ドキュメントの共有が困難
+- pros: Complete separation
+- cons: Requires branch switching, difficult to share documentation
 
-### 4. 並行運用
+### 4. Parallel Operation
 
 ```
 raspberry-pi/
 esp32-gcp/
 ```
 
-- cons: どちらが現在のプロジェクトか不明確、ルートのファイル（README等）の扱いが曖昧
+- cons: Unclear which is current project, ambiguous handling of root files (README, etc.)
 
-## 決定
+## Decision
 
-**アーカイブディレクトリ** を採用
+Adopt **Archive Directory**
 
-理由:
-- 参照しやすさと明確な分離の両立
-- 初心者（自分自身）にも理解しやすい
-- ドキュメント（docs/）は共通で使える
-- Git履歴が保存される
+Reasons:
+- Balance between easy reference and clear separation
+- Understandable for beginners (myself)
+- Documentation (docs/) can be shared
+- Git history preserved
 
-## 影響
+## Consequences
 
-### ポジティブ
-- 既存ファイルが簡単に参照可能
-- 新しいアーキテクチャのファイルがルートに配置され、明確
-- READMEで「なぜアーカイブされたか」を説明可能
+### Positive
+- Existing files easily referenceable
+- New architecture files at root, clear
+- Can explain "why archived" in README
 
-### ネガティブ
-- ディレクトリ構造の変更作業が必要
-- 一部のパスが変わる（ドキュメント内のリンク修正が必要）
+### Negative
+- Directory restructuring work needed
+- Some paths change (documentation links need fixing)
 
-### リスク
-- 既存ファイルの移動ミス（Git操作で慎重に実施）
+### Risks
+- File move errors (carefully execute with Git operations)
 
-## 関連資料
+## Related Materials
 
-- [ADR-0001](2026-07-05-migrate-to-esp32-gcp.md)（移行の背景）
-- [docs/cloud-migration/](../cloud-migration/)（新しいアーキテクチャのガイド）
+- [ADR-0001](2026-07-05-migrate-to-esp32-gcp.md) (Migration background)
+- [docs/cloud-migration/](../cloud-migration/) (New architecture guide)

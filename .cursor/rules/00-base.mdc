@@ -1,5 +1,5 @@
 ---
-description: AquaPulseプロジェクト基盤ルール
+description: AquaPulse Project Base Rules
 alwaysApply: true
 metadata:
   environments: cloud
@@ -7,123 +7,134 @@ metadata:
 
 # AquaPulse Base Rules
 
-## プロジェクト概要
+## Project Overview
 
-AquaPulse: 淡水水槽モニタリングシステム
+AquaPulse: Freshwater aquarium monitoring system
 
-## 意思決定記録（ADR）
-
-重要な決定を下す前、または過去の決定を参照する必要がある場合:
+## Language Policy
 
 ```
-1. docs/decisions/README.md を確認
-2. 関連するADRを読む
-3. 矛盾する決定を提案しない
-4. 新しいADRが必要な場合は提案する
+Code & Comments: English only
+Documentation (docs/*): English
+Agent Rules (.cursor/rules/*): English
+Commit Messages: English preferred (Japanese acceptable)
+Exception: README.ja.md (Japanese version)
+User Communication (this chat): Japanese OK
 ```
 
-ADRを書くべき決定:
-- 取り戻すのが難しい決定
-- 複数の選択肢を検討した決定
-- 将来の決定に影響する決定
+## Architecture Decision Records (ADR)
 
-### 技術スタック
+Before making important decisions or when referencing past decisions:
 
 ```
-ハードウェア:
+1. Check docs/decisions/README.md
+2. Read relevant ADRs
+3. Don't propose contradictory decisions
+4. Propose new ADR if needed
+```
+
+When to write an ADR:
+- Hard-to-reverse decisions
+- Decisions with multiple alternatives considered
+- Decisions that affect future choices
+
+### Tech Stack
+
+```
+Hardware:
   - ESP32 (MicroPython)
-  - DS18B20 温度センサー
+  - DS18B20 temperature sensor
   - Tapo T310/P300
 
-クラウド:
+Cloud:
   - GCP (Pub/Sub, Cloud Functions, BigQuery)
   - Grafana Cloud
 
-インフラ:
+Infrastructure:
   - Terraform
   - GitHub Actions
 
-言語:
+Languages:
   - Python (Black + isort)
   - MicroPython
 ```
 
-### ディレクトリ構造
+### Directory Structure
 
 ```
 aquapulse/
-├─ esp32/              # ESP32 MicroPython コード
+├─ esp32/              # ESP32 MicroPython code
 ├─ cloud-functions/    # GCP Cloud Functions
-├─ terraform/          # インフラコード
-├─ docs/               # ドキュメント
-└─ .cursor/rules/      # このディレクトリ
+├─ terraform/          # Infrastructure code
+├─ docs/               # Documentation
+└─ .cursor/rules/      # This directory
 ```
 
-## プロジェクト固有の制約
+## Project-Specific Constraints
 
-### ハードウェア制約
+### Hardware Constraints
 
 ```
 Raspberry Pi:
-  - 「死んでいる」前提（SSH不可、復旧不可）
-  - 使用しない
+  - Assumed "dead" (no SSH, unrecoverable)
+  - Do not use
 
 ESP32:
-  - センサーは水槽に固定
-  - USB物理接続必須（初期開発時）
-  - IP問題は完全回避できない
-  - 書き換え回数は3-5回を想定
+  - Sensors fixed to aquarium
+  - USB physical connection required (initial development)
+  - IP issues cannot be fully avoided
+  - Expect 3-5 code rewrites
 ```
 
-### 開発制約
+### Development Constraints
 
 ```
-過度に楽観的な見通しを避ける:
-  - モックテストの限界を明示
-  - センサー読み取りは実機必須
-  - 「できる」と「できない」を明確に分ける
+Avoid overly optimistic estimates:
+  - Clarify limitations of mock testing
+  - Sensor reading requires real hardware
+  - Clearly separate "can do" from "cannot do"
 
-実装事例を優先:
-  - 実証済みの技術を採用
-  - 参考リンクを示す
+Prioritize proven implementations:
+  - Adopt battle-tested technology
+  - Provide reference links
 ```
 
-## コード規約
+## Code Conventions
 
 ### Python
 
 ```
-フォーマッター:
+Formatters:
   - Black
   - isort
 
-スタイル:
-  - 関数: 50行以下
-  - クラス: 300行以下
-  - 1つの責務のみ
+Style:
+  - Functions: ≤ 50 lines
+  - Classes: ≤ 300 lines
+  - Single Responsibility Principle
 ```
 
-### コミットメッセージ
+### Commit Messages
 
 ```
-Conventional Commits形式推奨:
+Conventional Commits format recommended:
 
-feat(scope): 新機能追加
-fix(scope): バグ修正
-docs(scope): ドキュメント
-refactor(scope): リファクタリング
-test(scope): テスト追加
-chore(scope): ビルド・設定
+feat(scope): add new feature
+fix(scope): bug fix
+docs(scope): documentation
+refactor(scope): refactoring
+test(scope): add tests
+chore(scope): build/config
 
-日本語OK
+English preferred, Japanese acceptable
 ```
 
-## 絶対に守るべきルール
+## Absolute Rules
 
 ```
-1. mainブランチへの直接コミット禁止
-2. PRのスキップ禁止
-3. force push to main 禁止
-4. センサーの物理的制約を常に考慮
-5. 楽観的な見積もりを避ける
+1. No direct commits to main branch
+2. No skipping PRs
+3. No force push to main
+4. Always consider sensor physical constraints
+5. Avoid optimistic estimates
 ```

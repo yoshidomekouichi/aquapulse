@@ -1,77 +1,77 @@
-# ADR-0001: Raspberry PiからESP32+GCPへの移行
+# ADR-0001: Migration from Raspberry Pi to ESP32+GCP
 
-## ステータス
+## Status
 
-承認済み（2026-07-05）
+Approved (2026-07-05)
 
-## コンテキスト
+## Context
 
-AquaPulseプロジェクトは、当初Raspberry Pi上でDocker Compose（TimescaleDB、Grafana）を使用して稼働していました。しかし、以下の問題が発生:
+The AquaPulse project initially ran on Raspberry Pi using Docker Compose (TimescaleDB, Grafana). However, the following problems occurred:
 
-- **SSH接続が不安定**: IPアドレス固定、Tailscale使用でも接続不可
-- **復旧が困難**: ヘッドレス構成のため、SSH不可 = 完全にアクセス不可
-- **物理的制約**: センサーが水槽に固定されており、Raspberry Piを机で開発できない
-- **ネットワーク依存**: 日常的な運用でIPアドレスに依存
+- **Unstable SSH connection**: Connection impossible even with fixed IP and Tailscale
+- **Difficult recovery**: Headless configuration means no SSH = completely inaccessible
+- **Physical constraints**: Sensors fixed to aquarium, cannot develop Raspberry Pi at desk
+- **Network dependency**: Daily operation depends on IP address
 
-Raspberry Piが「死んだ」（SSH不可、復旧不可）状態で、新しいアーキテクチャへの移行を検討。
+Raspberry Pi became "dead" (no SSH, unrecoverable). Considering migration to new architecture.
 
-## 検討した選択肢
+## Alternatives Considered
 
-### 1. Raspberry Piの修復・再セットアップ
+### 1. Repair/Re-setup Raspberry Pi
 
-- pros: 既存コードを流用できる
-- cons: 同じSSH問題が再発する可能性、根本的な解決にならない
+- pros: Can reuse existing code
+- cons: Same SSH problem may recur, not fundamental solution
 
-### 2. DFRobotなど中間デバイスの使用
+### 2. Use Intermediate Device like DFRobot
 
-- pros: Raspberry Piを机で操作可能
-- cons: Raspberry Pi ↔ DFRobot間の通信がIP依存、問題が1段階増える
+- pros: Raspberry Pi operable at desk
+- cons: Raspberry Pi ↔ DFRobot communication IP-dependent, adds one more layer of problems
 
-### 3. ESP32 + GCP Cloud-Native アーキテクチャ（採用）
+### 3. ESP32 + GCP Cloud-Native Architecture (Adopted)
 
-- pros: 
-  - SSH不要（初回セットアップのみUSB接続）
-  - IPアドレス依存なし（日常運用）
-  - センサー固定の物理制約に対応
-  - クラウドネイティブで拡張性が高い
-- cons: 
-  - 既存コードの完全書き換え
-  - GCP費用（月$5-10予想）
-  - 新しい技術スタックの学習
+- pros:
+  - No SSH needed (only USB connection for initial setup)
+  - No IP address dependency (daily operation)
+  - Handles physical constraint of fixed sensors
+  - Cloud-native with high scalability
+- cons:
+  - Complete rewrite of existing code
+  - GCP costs (estimated $5-10/month)
+  - Learning curve for new tech stack
 
-## 決定
+## Decision
 
-**ESP32 + GCP Cloud-Native アーキテクチャ** を採用
+Adopt **ESP32 + GCP Cloud-Native Architecture**
 
-技術スタック:
-- **ハードウェア**: ESP32（MicroPython）
-- **センサー**: DS18B20（温度）、Tapo T310/P300
-- **クラウド**: GCP（Pub/Sub、Cloud Functions、BigQuery、Cloud Scheduler）
-- **可視化**: Grafana Cloud
+Tech stack:
+- **Hardware**: ESP32 (MicroPython)
+- **Sensors**: DS18B20 (temperature), Tapo T310/P300
+- **Cloud**: GCP (Pub/Sub, Cloud Functions, BigQuery, Cloud Scheduler)
+- **Visualization**: Grafana Cloud
 - **IaC**: Terraform
 - **CI/CD**: GitHub Actions
 
-## 影響
+## Consequences
 
-### ポジティブ
-- SSH問題からの完全解放
-- 電源ON/OFF だけで運用可能
-- 安全な電源断（スクリプト停止不要）
-- クラウドネイティブのメリット（スケーラビリティ、可用性）
+### Positive
+- Complete liberation from SSH problems
+- Operable with only power ON/OFF
+- Safe power-off (no script stop needed)
+- Cloud-native benefits (scalability, availability)
 
-### ネガティブ
-- 既存コード（Python、Docker Compose）のアーカイブ化
-- GCP費用（従来: $0 → 新: 月$5-10）
-- MicroPython、GCPの学習コスト
+### Negative
+- Archiving existing code (Python, Docker Compose)
+- GCP costs (previously: $0 → new: $5-10/month)
+- Learning cost for MicroPython, GCP
 
-### リスク
-- ESP32書き換えは物理接続必須（USB 2m以上のケーブル必要）
-- モックテストの限界（センサー読み取りは実機必須）
-- 初期開発での試行錯誤（3-5回の書き換え想定）
+### Risks
+- ESP32 rewrite requires physical connection (USB cable ≥ 2m needed)
+- Mock testing limitations (sensor reading requires real hardware)
+- Trial-and-error in initial development (expect 3-5 rewrites)
 
-## 関連資料
+## Related Materials
 
-- [docs/cloud-migration/](../cloud-migration/)（移行ガイド全体）
-- [docs/cloud-migration/00_OVERVIEW.md](../cloud-migration/00_OVERVIEW.md)（システム概要）
-- [docs/cloud-migration/01_HARDWARE_SETUP.md](../cloud-migration/01_HARDWARE_SETUP.md)（ESP32の動作モデル）
-- [ADR-0002](2026-07-05-archive-directory-structure.md)（既存コードのアーカイブ）
+- [docs/cloud-migration/](../cloud-migration/) (Full migration guide)
+- [docs/cloud-migration/00_OVERVIEW.md](../cloud-migration/00_OVERVIEW.md) (System overview)
+- [docs/cloud-migration/01_HARDWARE_SETUP.md](../cloud-migration/01_HARDWARE_SETUP.md) (ESP32 operation model)
+- [ADR-0002](2026-07-05-archive-directory-structure.md) (Archiving existing code)
