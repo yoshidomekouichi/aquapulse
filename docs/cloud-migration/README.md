@@ -1,302 +1,301 @@
-# 🌊 AquaPulse クラウド移行ガイド
+# 🌊 AquaPulse Cloud Migration Guide
 
-**ラズパイ → ESP32 + GCP への完全移行手順**
-
----
-
-## 🚨 **なぜ今クラウド移行するのか**
-
-### **現在の状況**
-
-```
-❌ ラズパイにSSH接続不可
-❌ 物理アクセスもできない（水槽の裏、モニター/キーボード接続不可）
-❌ Tailscaleも接続できず
-❌ DHCP予約も機能せず
-```
-
-### **選択肢の比較**
-
-| 選択肢 | 手間 | 将来性 | 根本解決 |
-|--------|------|--------|---------|
-| **A. OSリセット→ラズパイ復旧** | 中（復旧手順あり） | 低（また同じ問題） | ❌ |
-| **B. クラウド移行（本ガイド）** | 中（新規構築） | 高（IP問題解消） | ✅ |
-
-**結論**: **どちらもゼロから構築する手間はほぼ同じ**なら、**根本解決できるクラウド移行が賢明**。
-
-### **なぜ今が最適なタイミングか**
-
-```
-✅ どうせOSリセットが必要 = 既存環境への未練なし
-✅ データ喪失は避けられない = 移行障壁が低い
-✅ 同じ手間なら将来性の高い方へ
-✅ ラズパイ復旧しても再発リスクあり
-```
-
-**このドキュメントは「ラズパイが死んだ今」を前提に書かれています。**
+**Complete Migration from Raspberry Pi → ESP32 + GCP**
 
 ---
 
-## 📋 **このドキュメント群について**
+## 🚨 **Why Migrate to Cloud Now**
 
-### **目的**
-
-ラズパイの**IPアドレス問題**と**物理アクセス問題**を**根本から**解決するため、ESP32 + GCP構成に移行する。
-
-### **移行後の構成**
+### **Current Situation**
 
 ```
-【現在】
-ラズパイ（水槽の裏、アクセス不可）
-  - センサー読み取り
-  - DB・Grafana
-  - SSH接続（切れる）
+❌ Cannot SSH to Raspberry Pi
+❌ No physical access (behind aquarium, cannot connect monitor/keyboard)
+❌ Tailscale also fails to connect
+❌ DHCP reservation not working
+```
 
-【移行後】
-ESP32（水槽の裏）
-  - センサー読み取りのみ
+### **Comparison of Options**
+
+| Option | Effort | Future-proof | Root Solution |
+|--------|--------|--------------|---------------|
+| **A. OS Reset → Raspberry Pi Recovery** | Medium (recovery guide exists) | Low (same problem may recur) | ❌ |
+| **B. Cloud Migration (this guide)** | Medium (new construction) | High (IP issue resolved) | ✅ |
+
+**Conclusion**: **If both require similar effort to build from scratch**, **cloud migration that solves root cause is wise**.
+
+### **Why Now is Optimal Timing**
+
+```
+✅ OS reset needed anyway = no attachment to existing environment
+✅ Data loss unavoidable = low migration barrier
+✅ Same effort → choose high future value
+✅ Raspberry Pi recovery has recurrence risk
+```
+
+**This document assumes "Raspberry Pi is dead now."**
+
+---
+
+## 📋 **About This Documentation**
+
+### **Purpose**
+
+Fundamentally solve Raspberry Pi's **IP address problem** and **physical access problem** by migrating to ESP32 + GCP architecture.
+
+### **Architecture After Migration**
+
+```
+【Current】
+Raspberry Pi (behind aquarium, inaccessible)
+  - Sensor reading
+  - DB & Grafana
+  - SSH connection (disconnects)
+
+【After Migration】
+ESP32 (behind aquarium)
+  - Sensor reading only
   ↓ WiFi
-GCP（クラウド）
-  - BigQuery（データ保存）
-  - Grafana Cloud（可視化）
-  - 完全リモート管理
+GCP (Cloud)
+  - BigQuery (data storage)
+  - Grafana Cloud (visualization)
+  - Fully remote managed
 ```
 
 ---
 
-## 🎯 **メリット**
+## 🎯 **Benefits**
 
-| 項目 | 現在（ラズパイ🔴死亡） | 移行後（ESP32+GCP） |
-|------|---------------------|-------------------|
-| **物理アクセス** | 必要だが不可能（詰んでる） | 不要（完全クラウド） |
-| **IPアドレス** | 固定してたのに接続不可 | 気にしなくてOK |
-| **デバイスコスト** | ラズパイ: 1万円（使えず） | ESP32: 2千円 |
-| **月額コスト** | 電気代: $2（無駄） | GCP無料枠: $0 |
-| **スケーラビリティ** | 限界あり（そもそも動かず） | ほぼ無限 |
-| **Phase 3準備** | 不可能（アクセス不可） | BigQuery+Databricks |
-| **トラブル時** | 詰む（現状） | リモート対応可能 |
-
----
-
-## 📚 **ドキュメント構成**
-
-### **1. [00_OVERVIEW.md](00_OVERVIEW.md)** - 全体概要
-- システム構成図
-- 技術スタック
-- コスト試算
-- 移行スケジュール
-
-### **2. [01_HARDWARE_SETUP.md](01_HARDWARE_SETUP.md)** - ハードウェア準備
-- ESP32購入ガイド（Amazonリンク）
-- 部品リスト
-- 配線図
-- センサー接続
-
-### **3. [02_GCP_SETUP.md](02_GCP_SETUP.md)** - GCP環境構築
-- プロジェクト作成
-- 認証設定
-- 必要なAPI有効化
-- gcloud CLI セットアップ
-
-### **4. [03_PHASE1_MANUAL.md](03_PHASE1_MANUAL.md)** - Phase 1: 手動デプロイ
-- gcloud CLI での手動デプロイ
-- 動作確認
-- トラブルシューティング
-- 学習ポイント
-
-### **5. [04_PHASE2_AUTOMATION.md](04_PHASE2_AUTOMATION.md)** - Phase 2: 自動化
-- GitHub Actions設定
-- Dev/Prod環境分離
-- CI/CDパイプライン
-- ロールバック方法
-
-### **6. [05_TESTING.md](05_TESTING.md)** - テスト・検証
-- ローカルテスト（Functions Framework）
-- Dev環境テスト
-- 本番デプロイ前チェックリスト
-- パフォーマンステスト
-
-### **7. [06_OPERATIONS.md](06_OPERATIONS.md)** - 運用ガイド
-- 日常の運用フロー
-- モニタリング
-- アラート設定
-- バックアップ・リストア
-
-### **8. [07_TROUBLESHOOTING.md](07_TROUBLESHOOTING.md)** - トラブルシューティング
-- よくある問題と解決策
-- エラーメッセージ集
-- デバッグ方法
-- サポート連絡先
-
-### **9. [APPENDIX.md](APPENDIX.md)** - 付録
-- 用語集
-- GCPサービス詳細解説
-- 参考リンク
-- FAQ
+| Item | Current (Raspberry Pi🔴dead) | After Migration (ESP32+GCP) |
+|------|----------------------------|---------------------------|
+| **Physical Access** | Required but impossible (stuck) | Unnecessary (fully cloud) |
+| **IP Address** | Fixed but cannot connect | No need to worry |
+| **Device Cost** | Raspberry Pi: $100 (unusable) | ESP32: $20 |
+| **Monthly Cost** | Electricity: $2 (waste) | GCP free tier: $0 |
+| **Scalability** | Limited (not even working) | Nearly infinite |
+| **Phase 3 Prep** | Impossible (no access) | BigQuery+Databricks ready |
+| **During Trouble** | Stuck (current state) | Remote response possible |
 
 ---
 
-## 🚀 **クイックスタート（3ステップ）**
+## 📚 **Documentation Structure**
 
-### **ステップ1: ハードウェア準備（1-2日）**
+### **1. [00_OVERVIEW.md](00_OVERVIEW.md)** - Overview
+- System architecture diagram
+- Tech stack
+- Cost estimation
+- Migration schedule
+
+### **2. [01_HARDWARE_SETUP.md](01_HARDWARE_SETUP.md)** - Hardware Preparation
+- ESP32 purchase guide (Amazon links)
+- Parts list
+- Wiring diagram
+- Sensor connection
+
+### **3. [02_GCP_SETUP.md](02_GCP_SETUP.md)** - GCP Environment Setup
+- Project creation
+- Authentication setup
+- Enable required APIs
+- gcloud CLI setup
+
+### **4. [03_PHASE1_MANUAL.md](03_PHASE1_MANUAL.md)** - Phase 1: Manual Deployment
+- Manual deployment with gcloud CLI
+- Operation check
+- Troubleshooting
+- Learning points
+
+### **5. [04_PHASE2_AUTOMATION.md](04_PHASE2_AUTOMATION.md)** - Phase 2: Automation
+- GitHub Actions configuration
+- Dev/Prod environment separation
+- CI/CD pipeline
+- Rollback method
+
+### **6. [05_TESTING.md](05_TESTING.md)** - Testing & Validation
+- Local testing (Functions Framework)
+- Dev environment testing
+- Pre-production deployment checklist
+- Performance testing
+
+### **7. [06_OPERATIONS.md](06_OPERATIONS.md)** - Operations Guide
+- Daily operations flow
+- Monitoring
+- Alert configuration
+- Backup & Restore
+
+### **8. [07_TROUBLESHOOTING.md](07_TROUBLESHOOTING.md)** - Troubleshooting
+- Common issues and solutions
+- Error message collection
+- Debugging methods
+- Support contacts
+
+### **9. [08_REFERENCES.md](08_REFERENCES.md)** - References
+- ESP32 aquarium monitoring implementations
+- Technical articles
+- Similar projects
+
+---
+
+## 🚀 **Quick Start (3 Steps)**
+
+### **Step 1: Hardware Preparation (1-2 days)**
 ```bash
-# ESP32購入 → 到着待ち → 配線
+# Purchase ESP32 → Wait for arrival → Wiring
 ```
-詳細: [01_HARDWARE_SETUP.md](01_HARDWARE_SETUP.md)
+Details: [01_HARDWARE_SETUP.md](01_HARDWARE_SETUP.md)
 
-### **ステップ2: GCP環境構築（1日）**
+### **Step 2: GCP Environment Setup (1 day)**
 ```bash
-# プロジェクト作成 → 認証 → 手動デプロイ
+# Create project → Authentication → Manual deployment
 ```
-詳細: [02_GCP_SETUP.md](02_GCP_SETUP.md) + [03_PHASE1_MANUAL.md](03_PHASE1_MANUAL.md)
+Details: [02_GCP_SETUP.md](02_GCP_SETUP.md) + [03_PHASE1_MANUAL.md](03_PHASE1_MANUAL.md)
 
-### **ステップ3: 自動化（1日）**
+### **Step 3: Automation (1 day)**
 ```bash
-# GitHub Actions設定 → git push だけでデプロイ
+# GitHub Actions configuration → Deploy with just git push
 ```
-詳細: [04_PHASE2_AUTOMATION.md](04_PHASE2_AUTOMATION.md)
+Details: [04_PHASE2_AUTOMATION.md](04_PHASE2_AUTOMATION.md)
 
 ---
 
-## 📊 **進捗チェックリスト**
+## 📊 **Progress Checklist**
 
-### **Phase 0: 準備**
-- [ ] このドキュメントを読む
-- [ ] ESP32を購入
-- [ ] GCPアカウント作成
-- [ ] Grafana Cloudアカウント作成
-- [ ] ⚠️ ラズパイは放置（触らない）
+### **Phase 0: Preparation**
+- [ ] Read this documentation
+- [ ] Purchase ESP32
+- [ ] Create GCP account
+- [ ] Create Grafana Cloud account
+- [ ] ⚠️ Leave Raspberry Pi alone (don't touch)
 
-### **Phase 1: 開発環境（手動）**
-- [ ] ESP32セットアップ
-- [ ] GCPプロジェクト作成
-- [ ] 手動デプロイ成功
-- [ ] Dev環境でテスト（24時間稼働）
+### **Phase 1: Development Environment (Manual)**
+- [ ] ESP32 setup
+- [ ] GCP project creation
+- [ ] Manual deployment success
+- [ ] Dev environment test (24-hour operation)
 
-### **Phase 2: 自動化**
-- [ ] GitHub Actions設定
-- [ ] Dev環境自動デプロイ
-- [ ] Prod環境自動デプロイ
-- [ ] 動作確認
+### **Phase 2: Automation**
+- [ ] GitHub Actions configuration
+- [ ] Dev environment auto-deployment
+- [ ] Prod environment auto-deployment
+- [ ] Operation check
 
-### **Phase 3: 本番稼働**
-- [ ] ESP32本番運用開始
-- [ ] データ収集率95%以上確認
-- [ ] センサー値の妥当性確認
-- [ ] Grafanaダッシュボード表示確認
-- [ ] 1週間安定稼働
-- [ ] ⚠️ ラズパイは完全に放置（またはあとで物理撤去）
+### **Phase 3: Production Operation**
+- [ ] ESP32 production operation start
+- [ ] Confirm data collection rate ≥95%
+- [ ] Confirm sensor value validity
+- [ ] Confirm Grafana dashboard display
+- [ ] 1 week stable operation
+- [ ] ⚠️ Leave Raspberry Pi completely alone (or physically remove later)
 
 ---
 
-## 🎓 **学習の進め方**
+## 🎓 **Learning Approach**
 
-### **推奨順序**
+### **Recommended Order**
 
 ```
-1. 全体像を理解
-   └ 00_OVERVIEW.md を読む
+1. Understand big picture
+   └ Read 00_OVERVIEW.md
    
-2. ハードウェア準備
+2. Hardware preparation
    └ 01_HARDWARE_SETUP.md
    
-3. GCP基礎
+3. GCP basics
    └ 02_GCP_SETUP.md
    
-4. 手を動かす（Phase 1）
+4. Hands-on (Phase 1)
    └ 03_PHASE1_MANUAL.md
-   └ ここで仕組みを理解！
+   └ Understand mechanism here!
    
-5. 自動化（Phase 2）
+5. Automation (Phase 2)
    └ 04_PHASE2_AUTOMATION.md
    
-6. テスト
+6. Testing
    └ 05_TESTING.md
    
-7. 本番運用
+7. Production operation
    └ 06_OPERATIONS.md
 ```
 
-### **時間配分の目安**
+### **Time Allocation Guide**
 
-| Phase | 時間 | 内容 |
-|-------|------|------|
-| 準備 | 1-2日 | ESP32購入・到着待ち |
-| Phase 1 | 1日 | 手動デプロイで学習 |
-| Phase 2 | 1日 | GitHub Actions設定 |
-| テスト | 2-3日 | 並行稼働・検証 |
-| **合計** | **5-7日** | - |
+| Phase | Time | Content |
+|-------|------|---------|
+| Preparation | 1-2 days | ESP32 purchase & arrival |
+| Phase 1 | 1 day | Learn through manual deployment |
+| Phase 2 | 1 day | GitHub Actions configuration |
+| Testing | 2-3 days | Parallel operation & verification |
+| **Total** | **5-7 days** | - |
 
 ---
 
-## 💡 **重要なコンセプト**
+## 💡 **Important Concepts**
 
-### **1. Pub/Sub の役割**
+### **1. Pub/Sub Role**
 
 ```
 ESP32 → Pub/Sub → Cloud Functions → BigQuery
-        ↑ ここでバッファリング
+        ↑ Buffering here
         
-メリット:
-  - データ保証（7日間保持）
-  - 自動リトライ
-  - 高可用性（SLA 99.95%）
+Benefits:
+  - Data guarantee (7-day retention)
+  - Automatic retry
+  - High availability (SLA 99.95%)
 ```
 
-詳細: [00_OVERVIEW.md](00_OVERVIEW.md#pubsub)
+Details: [00_OVERVIEW.md](00_OVERVIEW.md#pubsub)
 
-### **2. Dev/Prod 分離**
+### **2. Dev/Prod Separation**
 
 ```
-開発: aquapulse-dev
-  ↓ テスト成功
-本番: aquapulse
+Development: aquapulse-dev
+  ↓ Test success
+Production: aquapulse
 ```
 
-詳細: [04_PHASE2_AUTOMATION.md](04_PHASE2_AUTOMATION.md#devprod)
+Details: [04_PHASE2_AUTOMATION.md](04_PHASE2_AUTOMATION.md#devprod)
 
 ### **3. IaC (Infrastructure as Code)**
 
 ```
-terraform/ でインフラ管理
-  - バージョン管理
-  - 環境複製
-  - 変更履歴
+Manage infrastructure with terraform/
+  - Version control
+  - Environment replication
+  - Change history
 ```
 
-詳細: [04_PHASE2_AUTOMATION.md](04_PHASE2_AUTOMATION.md#terraform)
+Details: [04_PHASE2_AUTOMATION.md](04_PHASE2_AUTOMATION.md#terraform)
 
 ---
 
-## 🆘 **困ったら**
+## 🆘 **If Stuck**
 
-### **トラブルシューティング**
-[07_TROUBLESHOOTING.md](07_TROUBLESHOOTING.md) を参照
+### **Troubleshooting**
+See [07_TROUBLESHOOTING.md](07_TROUBLESHOOTING.md)
 
-### **用語が分からない**
-[APPENDIX.md](APPENDIX.md#glossary) の用語集を参照
+### **Don't Understand Terms**
+See glossary in [08_REFERENCES.md](08_REFERENCES.md)
 
-### **GCPサービスの詳細**
-[APPENDIX.md](APPENDIX.md#gcp-services) を参照
+### **GCP Service Details**
+See [00_OVERVIEW.md](00_OVERVIEW.md)
 
 ---
 
-## 🔗 **外部リンク**
+## 🔗 **External Links**
 
-- [GCP公式ドキュメント](https://cloud.google.com/docs)
-- [ESP32公式](https://www.espressif.com/en/products/socs/esp32)
+- [GCP Official Documentation](https://cloud.google.com/docs)
+- [ESP32 Official](https://www.espressif.com/en/products/socs/esp32)
 - [MicroPython](https://micropython.org/)
 - [GitHub Actions](https://docs.github.com/actions)
 
 ---
 
-## 📝 **変更履歴**
+## 📝 **Change Log**
 
-| 日付 | バージョン | 変更内容 |
-|------|-----------|---------|
-| 2026-07-03 | 1.1.0 | **ラズパイ死亡前提**に全面改訂（SSH不可、並行稼働なし） |
-| 2026-07-03 | 1.0.0 | 初版作成 |
+| Date | Version | Changes |
+|------|---------|---------|
+| 2026-07-03 | 1.1.0 | **Fully revised assuming dead Raspberry Pi** (no SSH, no parallel operation) |
+| 2026-07-03 | 1.0.0 | Initial version |
 
 ---
 
-**次のステップ:** [00_OVERVIEW.md](00_OVERVIEW.md) を読んで全体像を理解しよう！
+**Next Step:** Read [00_OVERVIEW.md](00_OVERVIEW.md) to understand the big picture!
