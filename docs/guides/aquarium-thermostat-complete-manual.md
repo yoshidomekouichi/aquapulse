@@ -1,9 +1,19 @@
 # 水温監視+ファン自動制御システム 完全実装マニュアル
 
-**最終更新:** 2026-07-11  
+**最終更新:** 2026-07-11 (スキーマ更新)  
 **対象システム:** ESP32 + GCP + Tapo P300  
 **想定期間:** 4週間（お盆前完成）  
 **難易度:** 初心者OK（超詳細説明）
+
+**⚠️ 重要: 新スキーマ対応 (2026-07-11)**
+
+このマニュアルは、因果推論分析に対応した新しいBigQueryスキーマで更新されています。主な変更点：
+
+1. **`sensor_readings` テーブル拡張**: `sensor_type`, `location`, `device_id`, `firmware_version` フィールド追加
+2. **`control_events` テーブル新規作成**: ファン制御イベントと手動介入イベントを記録
+3. **因果推論対応**: ファンの冷却効果や水換えの影響を分析可能な設計
+
+詳細は [ADR-0006: Simplified Schema Design](../decisions/0006-simplified-schema-design.md) を参照してください。
 
 ---
 
@@ -2348,6 +2358,9 @@ TABLE_ID = f"{PROJECT_ID}.aquapulse.sensor_readings"
 def ingest(request):
     """
     HTTP エンドポイント: ESP32からデータを受信してBigQueryに保存
+    
+    新スキーマ対応:
+    - sensor_id, sensor_type, location, value, unit, device_id, firmware_version
     """
     # CORS 対応
     if request.method == 'OPTIONS':
@@ -2369,17 +2382,21 @@ def ingest(request):
             return ('Missing JSON body', 400, headers)
         
         # 必須フィールド確認
-        required_fields = ['sensor_id', 'value', 'unit']
+        required_fields = ['sensor_id', 'sensor_type', 'location', 'value', 'unit', 'device_id']
         for field in required_fields:
             if field not in request_json:
                 return (f'Missing field: {field}', 400, headers)
         
-        # BigQuery に挿入するデータ
+        # BigQuery に挿入するデータ（新スキーマ）
         row = {
             'timestamp': datetime.utcnow().isoformat(),
             'sensor_id': request_json['sensor_id'],
+            'sensor_type': request_json['sensor_type'],
+            'location': request_json['location'],
             'value': float(request_json['value']),
-            'unit': request_json['unit']
+            'unit': request_json['unit'],
+            'device_id': request_json['device_id'],
+            'firmware_version': request_json.get('firmware_version')  # NULLable
         }
         
         # BigQuery に挿入
@@ -2396,6 +2413,22 @@ def ingest(request):
         print(f'Error: {e}')
         return (f'Internal error: {str(e)}', 500, headers)
 ```
+
+**⚠️ 新スキーマ対応について:**
+
+このコードは新しいBigQueryスキーマに対応しています。ESP32から以下のフィールドを受信します：
+
+| フィールド | 必須 | 説明 |
+|-----------|------|------|
+| `sensor_id` | ✅ | センサーID |
+| `sensor_type` | ✅ | センサータイプ |
+| `location` | ✅ | 測定場所 |
+| `value` | ✅ | 測定値 |
+| `unit` | ✅ | 単位 |
+| `device_id` | ✅ | デバイスID |
+| `firmware_version` | ❌ | ファームウェアバージョン（省略可） |
+
+`timestamp` はCloud Functions側で自動生成されます（UTC）。
 
 **requirements.txt 作成:**
 ```bash
@@ -2422,12 +2455,18 @@ import functions_framework
 import asyncio
 import json
 import os
+import uuid
+from datetime import datetime
 from kasa import Discover
-from google.cloud import secretmanager
+from google.cloud import secretmanager, bigquery
 
 # Secrets Manager クライアント
 secret_client = secretmanager.SecretManagerServiceClient()
 PROJECT_ID = "YOUR_PROJECT_ID"  # 後で置換
+
+# BigQuery クライアント（イベント記録用）
+bq_client = bigquery.Client()
+EVENTS_TABLE_ID = f"{PROJECT_ID}.aquapulse.control_events"
 
 def get_secret(secret_id):
     """Secrets Manager からシークレット取得"""
@@ -2435,52 +2474,101 @@ def get_secret(secret_id):
     response = secret_client.access_secret_version(request={"name": name})
     return response.payload.data.decode('UTF-8')
 
-# 閾値
-THRESHOLD_HIGH = 28.0  # ファンON
+# 閾値（ヒステリシス付き）
+THRESHOLD_HIGH = 27.0  # ファンON
 THRESHOLD_LOW = 26.0   # ファンOFF
 
 # 状態管理（メモリ内、簡易版）
 fan_state = {'is_on': False}
 
+def record_event(event_type, action, trigger_value, trigger_threshold, success, error_message=None, duration_ms=None):
+    """
+    control_events テーブルにイベントを記録
+    """
+    event_id = str(uuid.uuid4())
+    row = {
+        'event_id': event_id,
+        'timestamp': datetime.utcnow().isoformat(),
+        'event_type': event_type,
+        'device_id': 'cloud_function_thermostat_v1',
+        'action': action,
+        'action_details': {'hysteresis_upper': THRESHOLD_HIGH, 'hysteresis_lower': THRESHOLD_LOW},
+        'trigger_type': 'threshold_exceeded' if success else 'error',
+        'trigger_sensor_id': 'ds18b20_001',  # 温度センサーのID（仮）
+        'trigger_value': trigger_value,
+        'trigger_threshold': trigger_threshold,
+        'success': success,
+        'error_message': error_message,
+        'duration_ms': duration_ms
+    }
+    
+    try:
+        errors = bq_client.insert_rows_json(EVENTS_TABLE_ID, [row])
+        if errors:
+            print(f'BigQuery event insert errors: {errors}')
+        else:
+            print(f'Event recorded: {event_id} - {action}')
+    except Exception as e:
+        print(f'Error recording event: {e}')
+
 async def control_fan_async(temperature):
     """
     温度に応じてファンをON/OFF
     """
-    # Tapo 認証情報取得
-    tapo_username = get_secret('tapo-username')
-    tapo_password = get_secret('tapo-password')
-    tapo_ip = get_secret('tapo-p300-ip')
+    start_time = datetime.utcnow()
     
-    # Tapo P300 に接続
-    dev = await Discover.discover_single(
-        tapo_ip,
-        username=tapo_username,
-        password=tapo_password,
-        timeout=10
-    )
-    await dev.update()
+    try:
+        # Tapo 認証情報取得
+        tapo_username = get_secret('tapo-username')
+        tapo_password = get_secret('tapo-password')
+        tapo_ip = get_secret('tapo-p300-ip')
+        
+        # Tapo P300 に接続
+        dev = await Discover.discover_single(
+            tapo_ip,
+            username=tapo_username,
+            password=tapo_password,
+            timeout=10
+        )
+        await dev.update()
+        
+        # ファン用ソケット（0番目と仮定）
+        fan = dev.children[0]
+        
+        # サーモスタットロジック（ヒステリシス）
+        if temperature >= THRESHOLD_HIGH and not fan.is_on:
+            await fan.turn_on()
+            fan_state['is_on'] = True
+            duration_ms = int((datetime.utcnow() - start_time).total_seconds() * 1000)
+            print(f'🔥 温度 {temperature}℃ → ファンON')
+            
+            # イベント記録
+            record_event('automated_thermostat', 'fan_on', temperature, THRESHOLD_HIGH, True, duration_ms=duration_ms)
+            
+            # TODO: LINE通知
+            return {'action': 'turn_on', 'temperature': temperature, 'threshold': THRESHOLD_HIGH}
+        
+        elif temperature <= THRESHOLD_LOW and fan.is_on:
+            await fan.turn_off()
+            fan_state['is_on'] = False
+            duration_ms = int((datetime.utcnow() - start_time).total_seconds() * 1000)
+            print(f'❄️ 温度 {temperature}℃ → ファンOFF')
+            
+            # イベント記録
+            record_event('automated_thermostat', 'fan_off', temperature, THRESHOLD_LOW, True, duration_ms=duration_ms)
+            
+            # TODO: LINE通知
+            return {'action': 'turn_off', 'temperature': temperature, 'threshold': THRESHOLD_LOW}
+        
+        else:
+            print(f'温度 {temperature}℃ → 変更なし（現在: {"ON" if fan.is_on else "OFF"}）')
+            return {'action': 'no_change', 'temperature': temperature, 'fan_is_on': fan.is_on}
     
-    # ファン用ソケット（0番目と仮定）
-    fan = dev.children[0]
-    
-    # サーモスタットロジック
-    if temperature >= THRESHOLD_HIGH and not fan.is_on:
-        await fan.turn_on()
-        fan_state['is_on'] = True
-        print(f'🔥 温度 {temperature}℃ → ファンON')
-        # TODO: LINE通知
-        return {'action': 'turn_on', 'temperature': temperature}
-    
-    elif temperature <= THRESHOLD_LOW and fan.is_on:
-        await fan.turn_off()
-        fan_state['is_on'] = False
-        print(f'❄️ 温度 {temperature}℃ → ファンOFF')
-        # TODO: LINE通知
-        return {'action': 'turn_off', 'temperature': temperature}
-    
-    else:
-        print(f'温度 {temperature}℃ → 変更なし（現在: {"ON" if fan.is_on else "OFF"}）')
-        return {'action': 'no_change', 'temperature': temperature, 'fan_is_on': fan.is_on}
+    except Exception as e:
+        # エラーイベント記録
+        duration_ms = int((datetime.utcnow() - start_time).total_seconds() * 1000)
+        record_event('automated_thermostat', 'error', temperature, None, False, error_message=str(e), duration_ms=duration_ms)
+        raise
 
 @functions_framework.http
 def thermostat(request):
@@ -2517,12 +2605,30 @@ def thermostat(request):
         return (f'Internal error: {str(e)}', 500, headers)
 ```
 
+**⚠️ control_events テーブル対応について:**
+
+このコードは、ファンのON/OFFイベントを `control_events` テーブルに自動記録します。
+
+記録される情報：
+- `event_id`: UUID（自動生成）
+- `timestamp`: イベント発生時刻（UTC）
+- `event_type`: 'automated_thermostat'
+- `action`: 'fan_on', 'fan_off', 'error'
+- `action_details`: ヒステリシスの閾値情報
+- `trigger_value`: 温度値（介入前の状態）
+- `trigger_threshold`: 閾値（27℃ or 26℃）
+- `success`: 成功/失敗
+- `duration_ms`: 実行時間
+
+これにより、将来的に因果推論分析（ファンの冷却効果など）が可能になります。
+
 **requirements.txt 作成:**
 ```bash
 cat > requirements.txt << 'EOF'
 functions-framework==3.*
 python-kasa==0.10.*
 google-cloud-secret-manager==2.*
+google-cloud-bigquery==3.*
 EOF
 ```
 
@@ -2785,9 +2891,9 @@ bq ls
 
 ##### 2. テーブルスキーマの定義
 
-**schema.json 作成:**
+**sensor_readings テーブル用 schema.json 作成:**
 ```bash
-cat > ~/aquapulse-schema.json << 'EOF'
+cat > ~/aquapulse-sensor-schema.json << 'EOF'
 [
   {
     "name": "timestamp",
@@ -2799,7 +2905,19 @@ cat > ~/aquapulse-schema.json << 'EOF'
     "name": "sensor_id",
     "type": "STRING",
     "mode": "REQUIRED",
-    "description": "センサーID（例: esp32_water_temp）"
+    "description": "センサーID（例: ds18b20_001, tapo_t310_room）"
+  },
+  {
+    "name": "sensor_type",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "センサータイプ（temperature, tds, ph, room_temperature, room_humidity）"
+  },
+  {
+    "name": "location",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "測定場所（aquarium, room）"
   },
   {
     "name": "value",
@@ -2811,7 +2929,105 @@ cat > ~/aquapulse-schema.json << 'EOF'
     "name": "unit",
     "type": "STRING",
     "mode": "REQUIRED",
-    "description": "単位（例: celsius）"
+    "description": "単位（celsius, ppm, pH, percent）"
+  },
+  {
+    "name": "device_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "デバイスID（esp32_001, tapo_t310_abc123）"
+  },
+  {
+    "name": "firmware_version",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "ファームウェア/ソフトウェアバージョン"
+  }
+]
+EOF
+```
+
+**control_events テーブル用 schema.json 作成:**
+```bash
+cat > ~/aquapulse-events-schema.json << 'EOF'
+[
+  {
+    "name": "event_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "イベント識別子（UUID）"
+  },
+  {
+    "name": "timestamp",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED",
+    "description": "イベント発生時刻（UTC）"
+  },
+  {
+    "name": "event_type",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "イベントタイプ（automated_thermostat, manual_maintenance, manual_dosing）"
+  },
+  {
+    "name": "device_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "実行デバイスID（手動の場合はNULL）"
+  },
+  {
+    "name": "action",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "実行アクション（fan_on, fan_off, water_change, fertilizer_add等）"
+  },
+  {
+    "name": "action_details",
+    "type": "JSON",
+    "mode": "NULLABLE",
+    "description": "アクション詳細（量、製品名、メモ等）"
+  },
+  {
+    "name": "trigger_type",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "トリガータイプ（threshold_exceeded, manual, scheduled）"
+  },
+  {
+    "name": "trigger_sensor_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "トリガーとなったセンサーID"
+  },
+  {
+    "name": "trigger_value",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "トリガー時のセンサー値（介入前の状態）"
+  },
+  {
+    "name": "trigger_threshold",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "閾値"
+  },
+  {
+    "name": "success",
+    "type": "BOOLEAN",
+    "mode": "REQUIRED",
+    "description": "実行成功/失敗"
+  },
+  {
+    "name": "error_message",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "エラーメッセージ"
+  },
+  {
+    "name": "duration_ms",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "実行時間（ミリ秒）"
   }
 ]
 EOF
@@ -2821,64 +3037,127 @@ EOF
 
 ##### 3. テーブルの作成
 
+**sensor_readings テーブル作成:**
 ```bash
 bq mk --table \
   --time_partitioning_field=timestamp \
   --time_partitioning_type=DAY \
-  --clustering_fields=sensor_id \
+  --clustering_fields=sensor_id,sensor_type \
   --description="Sensor readings with daily partitioning" \
   $(gcloud config get-value project):aquapulse.sensor_readings \
-  ~/aquapulse-schema.json
+  ~/aquapulse-sensor-schema.json
+```
+
+**control_events テーブル作成:**
+```bash
+bq mk --table \
+  --time_partitioning_field=timestamp \
+  --time_partitioning_type=DAY \
+  --clustering_fields=event_type,action \
+  --description="Control events and manual interventions" \
+  $(gcloud config get-value project):aquapulse.control_events \
+  ~/aquapulse-events-schema.json
 ```
 
 **確認:**
 ```bash
 bq show aquapulse.sensor_readings
+bq show aquapulse.control_events
 ```
 
-**期待される出力:**
+**期待される出力（sensor_readings）:**
 ```
 Table project:aquapulse.sensor_readings
 
-   Last modified         Schema         Total Rows   Total Bytes   Expiration   Time Partitioning   Clustered Fields   Labels  
- ----------------- ------------------- ------------ ------------- ------------ ------------------- ------------------ -------- 
-  11 Jul 09:00:00   |- timestamp: ...   0            0                          DAY (field: ...     sensor_id                   
-                    |- sensor_id: ...                                            timestamp)                                      
-                    |- value: ...                                                                                                
-                    |- unit: ...                                                                                                 
+   Last modified         Schema         Total Rows   Total Bytes   Expiration   Time Partitioning   Clustered Fields          Labels  
+ ----------------- ------------------- ------------ ------------- ------------ ------------------- ------------------------- -------- 
+  11 Jul 09:00:00   |- timestamp: ...   0            0                          DAY (field: ...     sensor_id, sensor_type             
+                    |- sensor_id: ...                                            timestamp)                                             
+                    |- sensor_type: ...                                                                                                 
+                    |- location: ...                                                                                                    
+                    |- value: ...                                                                                                       
+                    |- unit: ...                                                                                                        
+                    |- device_id: ...                                                                                                   
+                    |- firmware_version: ...                                                                                            
+```
+
+**期待される出力（control_events）:**
+```
+Table project:aquapulse.control_events
+
+   Last modified         Schema         Total Rows   Total Bytes   Expiration   Time Partitioning   Clustered Fields      Labels  
+ ----------------- ------------------- ------------ ------------- ------------ ------------------- --------------------- -------- 
+  11 Jul 09:00:00   |- event_id: ...    0            0                          DAY (field: ...     event_type, action             
+                    |- timestamp: ...                                            timestamp)                                         
+                    |- event_type: ...                                                                                              
+                    |- device_id: ...                                                                                               
+                    |- action: ...                                                                                                  
+                    |- action_details: ...                                                                                          
+                    |- trigger_type: ...                                                                                            
+                    ...                                                                                                             
 ```
 
 ---
 
 ##### 4. テストデータの挿入
 
+**sensor_readings テストデータ:**
 ```bash
 # テストデータ作成
-cat > ~/test-data.json << 'EOF'
-{"timestamp": "2026-07-11T09:00:00", "sensor_id": "test_sensor", "value": 25.5, "unit": "celsius"}
-{"timestamp": "2026-07-11T09:01:00", "sensor_id": "test_sensor", "value": 25.7, "unit": "celsius"}
-{"timestamp": "2026-07-11T09:02:00", "sensor_id": "test_sensor", "value": 25.6, "unit": "celsius"}
+cat > ~/test-sensor-data.json << 'EOF'
+{"timestamp": "2026-07-11T09:00:00", "sensor_id": "ds18b20_001", "sensor_type": "temperature", "location": "aquarium", "value": 25.5, "unit": "celsius", "device_id": "esp32_001", "firmware_version": "v1.0.0"}
+{"timestamp": "2026-07-11T09:01:00", "sensor_id": "ds18b20_001", "sensor_type": "temperature", "location": "aquarium", "value": 25.7, "unit": "celsius", "device_id": "esp32_001", "firmware_version": "v1.0.0"}
+{"timestamp": "2026-07-11T09:02:00", "sensor_id": "ds18b20_001", "sensor_type": "temperature", "location": "aquarium", "value": 25.6, "unit": "celsius", "device_id": "esp32_001", "firmware_version": "v1.0.0"}
+{"timestamp": "2026-07-11T09:00:00", "sensor_id": "tapo_t310_room", "sensor_type": "room_temperature", "location": "room", "value": 28.2, "unit": "celsius", "device_id": "tapo_t310_abc123", "firmware_version": null}
 EOF
 
 # 挿入
-bq insert aquapulse.sensor_readings ~/test-data.json
+bq insert aquapulse.sensor_readings ~/test-sensor-data.json
+```
+
+**control_events テストデータ:**
+```bash
+# テストデータ作成
+cat > ~/test-events-data.json << 'EOF'
+{"event_id": "550e8400-e29b-41d4-a716-446655440000", "timestamp": "2026-07-11T09:30:00", "event_type": "automated_thermostat", "device_id": "cloud_function_thermostat_v1", "action": "fan_on", "action_details": {"hysteresis_upper": 27.0}, "trigger_type": "threshold_exceeded", "trigger_sensor_id": "ds18b20_001", "trigger_value": 27.2, "trigger_threshold": 27.0, "success": true, "error_message": null, "duration_ms": 1250}
+{"event_id": "660e8400-e29b-41d4-a716-446655440001", "timestamp": "2026-07-11T10:00:00", "event_type": "manual_maintenance", "device_id": null, "action": "water_change", "action_details": {"volume_liters": 5.0, "notes": "週次メンテナンス"}, "trigger_type": "manual", "trigger_sensor_id": null, "trigger_value": null, "trigger_threshold": null, "success": true, "error_message": null, "duration_ms": null}
+EOF
+
+# 挿入
+bq insert aquapulse.control_events ~/test-events-data.json
 ```
 
 **確認:**
 ```bash
+# sensor_readings 確認
 bq query --use_legacy_sql=false \
   'SELECT * FROM `aquapulse.sensor_readings` ORDER BY timestamp DESC LIMIT 5'
+
+# control_events 確認
+bq query --use_legacy_sql=false \
+  'SELECT event_id, timestamp, event_type, action, trigger_value FROM `aquapulse.control_events` ORDER BY timestamp DESC LIMIT 5'
 ```
 
-**期待される出力:**
+**期待される出力（sensor_readings）:**
 ```
-+---------------------+-------------+-------+---------+
-|      timestamp      | sensor_id   | value |  unit   |
-+---------------------+-------------+-------+---------+
-| 2026-07-11 09:02:00 | test_sensor |  25.6 | celsius |
-| 2026-07-11 09:01:00 | test_sensor |  25.7 | celsius |
-| 2026-07-11 09:00:00 | test_sensor |  25.5 | celsius |
-+---------------------+-------------+-------+---------+
++---------------------+---------------+-------------+----------+-------+---------+------------+------------------+
+|      timestamp      |   sensor_id   | sensor_type | location | value |  unit   | device_id  | firmware_version |
++---------------------+---------------+-------------+----------+-------+---------+------------+------------------+
+| 2026-07-11 09:02:00 | ds18b20_001   | temperature | aquarium |  25.6 | celsius | esp32_001  | v1.0.0           |
+| 2026-07-11 09:01:00 | ds18b20_001   | temperature | aquarium |  25.7 | celsius | esp32_001  | v1.0.0           |
+| 2026-07-11 09:00:00 | tapo_t310_... | room_temp...| room     |  28.2 | celsius | tapo_t3... | NULL             |
+| 2026-07-11 09:00:00 | ds18b20_001   | temperature | aquarium |  25.5 | celsius | esp32_001  | v1.0.0           |
++---------------------+---------------+-------------+----------+-------+---------+------------+------------------+
+```
+
+**期待される出力（control_events）:**
+```
++--------------------------------------+---------------------+---------------------+--------------+---------------+
+|               event_id               |      timestamp      |     event_type      |    action    | trigger_value |
++--------------------------------------+---------------------+---------------------+--------------+---------------+
+| 660e8400-e29b-41d4-a716-446655440001 | 2026-07-11 10:00:00 | manual_maintenance  | water_change |          NULL |
+| 550e8400-e29b-41d4-a716-446655440000 | 2026-07-11 09:30:00 | automated_thermostat| fan_on       |          27.2 |
++--------------------------------------+---------------------+---------------------+--------------+---------------+
 ```
 
 ---
@@ -2890,9 +3169,13 @@ bq query --use_legacy_sql=false \
 SELECT 
   timestamp,
   sensor_id,
-  value as temperature
+  sensor_type,
+  location,
+  value as temperature,
+  unit
 FROM `aquapulse.sensor_readings`
-WHERE sensor_id = 'esp32_water_temp'
+WHERE sensor_type = 'temperature'
+  AND location = 'aquarium'
 ORDER BY timestamp DESC
 LIMIT 1
 ```
@@ -2900,12 +3183,15 @@ LIMIT 1
 **過去24時間の平均:**
 ```sql
 SELECT 
+  sensor_id,
   AVG(value) as avg_temp,
   MIN(value) as min_temp,
   MAX(value) as max_temp
 FROM `aquapulse.sensor_readings`
-WHERE sensor_id = 'esp32_water_temp'
+WHERE sensor_type = 'temperature'
+  AND location = 'aquarium'
   AND timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR)
+GROUP BY sensor_id
 ```
 
 **1時間ごとの平均:**
@@ -2914,10 +3200,66 @@ SELECT
   TIMESTAMP_TRUNC(timestamp, HOUR) as hour,
   AVG(value) as avg_temp
 FROM `aquapulse.sensor_readings`
-WHERE sensor_id = 'esp32_water_temp'
+WHERE sensor_type = 'temperature'
+  AND location = 'aquarium'
   AND timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
 GROUP BY hour
 ORDER BY hour DESC
+```
+
+**ファン制御イベントの履歴:**
+```sql
+SELECT 
+  timestamp,
+  action,
+  trigger_value,
+  trigger_threshold,
+  success
+FROM `aquapulse.control_events`
+WHERE event_type = 'automated_thermostat'
+ORDER BY timestamp DESC
+LIMIT 10
+```
+
+**手動介入イベントの履歴:**
+```sql
+SELECT 
+  timestamp,
+  event_type,
+  action,
+  JSON_EXTRACT_SCALAR(action_details, '$.notes') as notes
+FROM `aquapulse.control_events`
+WHERE trigger_type = 'manual'
+ORDER BY timestamp DESC
+LIMIT 10
+```
+
+**因果推論用: ファンON後30分の温度変化:**
+```sql
+WITH fan_events AS (
+  SELECT
+    event_id,
+    timestamp AS event_time,
+    trigger_value AS pre_temp
+  FROM `aquapulse.control_events`
+  WHERE event_type = 'automated_thermostat'
+    AND action = 'fan_on'
+    AND success = true
+)
+SELECT
+  e.event_id,
+  e.event_time,
+  e.pre_temp,
+  AVG(s.value) AS post_temp_30min,
+  e.pre_temp - AVG(s.value) AS cooling_effect
+FROM fan_events e
+LEFT JOIN `aquapulse.sensor_readings` s
+ON s.sensor_type = 'temperature'
+  AND s.location = 'aquarium'
+  AND s.timestamp BETWEEN TIMESTAMP_ADD(e.event_time, INTERVAL 25 MINUTE)
+                      AND TIMESTAMP_ADD(e.event_time, INTERVAL 35 MINUTE)
+GROUP BY e.event_id, e.event_time, e.pre_temp
+ORDER BY e.event_time DESC
 ```
 
 ---
@@ -2928,8 +3270,10 @@ ORDER BY hour DESC
 
 - [ ] データセット `aquapulse` が作成された
 - [ ] テーブル `sensor_readings` が作成された
-- [ ] テストデータが挿入できた
+- [ ] テーブル `control_events` が作成された
+- [ ] テストデータが両テーブルに挿入できた
 - [ ] クエリでデータが表示された
+- [ ] 因果推論用クエリが実行できた
 
 ---
 
@@ -3376,7 +3720,9 @@ import json
 WIFI_SSID = "YourWiFiSSID"
 WIFI_PASSWORD = "YourPassword"
 CLOUD_FUNCTION_URL = "https://asia-northeast1-aquapulse-XXXXX.cloudfunctions.net/ingest"
-SENSOR_ID = "esp32_water_temp"
+DEVICE_ID = "esp32_001"  # ESP32の識別ID
+SENSOR_ID = "ds18b20_001"  # DS18B20センサーのID
+FIRMWARE_VERSION = "v1.0.0"  # ファームウェアバージョン
 INTERVAL = 60  # 60秒ごと
 
 # DS18B20 初期化
@@ -3422,12 +3768,17 @@ def read_temperature():
     temp = ds.read_temp(roms[0])
     return temp
 
-# データ送信
+# データ送信（新スキーマ対応）
 def send_data(temperature):
+    # 新しいスキーマに対応したペイロード
     data = {
         "sensor_id": SENSOR_ID,
+        "sensor_type": "temperature",  # センサータイプ
+        "location": "aquarium",  # 測定場所
         "value": temperature,
-        "unit": "celsius"
+        "unit": "celsius",
+        "device_id": DEVICE_ID,  # デバイスID
+        "firmware_version": FIRMWARE_VERSION  # ファームウェアバージョン
     }
     
     try:
@@ -3496,6 +3847,25 @@ def main():
 if __name__ == '__main__':
     main()
 ```
+
+**⚠️ 重要: スキーマ変更について**
+
+このコードは新しいBigQueryスキーマに対応しています。以下のフィールドを送信します：
+
+| フィールド | 値 | 説明 |
+|-----------|-----|------|
+| `sensor_id` | `"ds18b20_001"` | センサー識別子 |
+| `sensor_type` | `"temperature"` | センサータイプ（temperature, tds, ph等） |
+| `location` | `"aquarium"` | 測定場所（aquarium, room） |
+| `value` | `25.5` | 測定値 |
+| `unit` | `"celsius"` | 単位 |
+| `device_id` | `"esp32_001"` | ESP32デバイスID |
+| `firmware_version` | `"v1.0.0"` | ファームウェアバージョン |
+
+**カスタマイズポイント:**
+- `DEVICE_ID`: 複数のESP32を使う場合は、各デバイスに固有のIDを設定
+- `SENSOR_ID`: センサーを追加する場合は、固有のIDを設定
+- `FIRMWARE_VERSION`: コードを更新したらバージョンを上げる
 
 ---
 
