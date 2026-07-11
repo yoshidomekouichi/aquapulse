@@ -12,6 +12,104 @@
 
 ## 🔵 High Priority
 
+### 水温監視 + ファン自動制御（サーモスタット）
+
+**Status:** 🔵 Backlog  
+**Estimated:** 3-5 hours  
+**Added:** 2026-07-09  
+**Deadline:** ⚠️ **2026-08 お盆前（1週間不在）**  
+**Context:** 2026-07-09にファン付け忘れで水温30℃到達。魚は無事だったが危険な状態。お盆で1週間不在のため、自動化が必須  
+
+**Incident Record:**
+- **日時:** 2026-07-09
+- **事象:** ファン起動忘れ → 帰宅時に水温30℃
+- **影響:** 魚は無事だったが、あと数度高ければ危険だった
+- **原因:** 手動でのファンON/OFF管理
+- **再発防止:** 自動制御の実装（本タスク）
+
+**What to do (Phase 1 - 必須):**
+
+1. **Cloud Function実装**
+   - Pub/Sub trigger（水温データ受信）
+   - 閾値ロジック（ヒステリシス付き）:
+     - 水温 ≥ 28℃ → ファンON
+     - 水温 ≤ 26℃ → ファンOFF
+   - Tapo P300制御（python-kasa使用）
+   - エラーハンドリング（Tapo接続失敗時）
+
+2. **通知機能**
+   - ファンON/OFF時にLINE/Email通知
+   - 30℃超過時に緊急アラート
+   - 制御失敗時に通知
+
+3. **動作テスト**
+   - 手動で水温を上げてテスト
+   - ファンON/OFF確認
+   - 通知動作確認
+   - 1週間の連続動作テスト
+
+4. **Grafana監視**
+   - ファン状態パネル追加（既存）
+   - 水温アラート設定（30℃超過）
+   - 制御ログの可視化
+
+**What to do (Phase 2 - 保険/低優先度):**
+
+5. **クーラー自動制御（オプション）**
+   - Tapoリモコン機能の調査
+   - python-kasaのIR対応確認
+   - 代替製品検討（SwitchBot, Nature Remoなど）
+   - 35℃超過時の緊急クーラー起動
+
+**Why critical:**
+- **魚の生命に直結**：30℃超過は致命的なリスク
+- **お盆不在**：1週間自宅を空けるため、手動対応不可
+- **実績あり**：既に1回インシデント発生済み
+
+**Implementation priority:**
+- Phase 1（ファン制御）: **お盆前に必須**
+- Phase 2（クーラー）: 余裕があれば（手動対応も可）
+
+**Technical notes:**
+```python
+# Cloud Function イメージ
+# collector/cloud-functions/thermostat/main.py
+
+import asyncio
+from kasa import Discover
+
+THRESHOLD_HIGH = 28.0  # ファンON
+THRESHOLD_LOW = 26.0   # ファンOFF
+
+async def control_fan(temperature: float):
+    dev = await Discover.discover_single(
+        TAPO_P300_IP,
+        username=TAPO_USERNAME,
+        password=TAPO_PASSWORD
+    )
+    await dev.update()
+    fan = dev.children[0]  # ファン接続口
+    
+    if temperature >= THRESHOLD_HIGH and not fan.is_on:
+        await fan.turn_on()
+        send_notification(f"🔥 水温 {temperature}℃ → ファンON")
+    elif temperature <= THRESHOLD_LOW and fan.is_on:
+        await fan.turn_off()
+        send_notification(f"❄️ 水温 {temperature}℃ → ファンOFF")
+```
+
+**Prerequisites:**
+- ESP32基本実装完了（水温データ送信）
+- Tapo P300設定済み（既存）
+- Pub/Sub設定済み（既存）
+
+**Related:**
+- `collector/src/sources/tapo_lighting.py` (既存のTapo P300制御)
+- `docs/operations/tapo-status-report.md` (python-kasa利用)
+- インシデント記録（本エントリ）
+
+---
+
 ### Legacy Docs整理
 
 **Status:** 🔵 Backlog  
@@ -243,4 +341,4 @@ Archive (after 1 month) → Remove from file
 
 ---
 
-Last updated: 2026-07-06
+Last updated: 2026-07-09
