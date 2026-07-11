@@ -25,6 +25,7 @@ Create ADR for decisions that meet these conditions:
 
 ## Active Decisions
 
+- [ADR-0006](0006-simplified-schema-design.md): Simplified Schema Design for BigQuery Tables (Approved)
 - [ADR-0003](2026-07-05-shell-working-directory.md): Explicit working_directory in Shell tool Git operations (Approved)
 - [ADR-0002](2026-07-05-archive-directory-structure.md): Archive directory structure (Approved)
 - [ADR-0001](2026-07-05-migrate-to-esp32-gcp.md): Migration from Raspberry Pi to ESP32+GCP (Approved)

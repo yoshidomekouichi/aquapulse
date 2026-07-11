@@ -24,19 +24,57 @@ User Communication (this chat): Japanese OK
 
 ## Architecture Decision Records (ADR)
 
-Before making important decisions or when referencing past decisions:
+**MANDATORY: Always check ADRs before major decisions**
 
 ```
-1. Check docs/decisions/README.md
-2. Read relevant ADRs
-3. Don't propose contradictory decisions
-4. Propose new ADR if needed
+1. Read docs/decisions/README.md
+2. Search existing ADRs by keyword
+3. Verify no contradictions with existing ADRs
 ```
 
-When to write an ADR:
-- Hard-to-reverse decisions
-- Decisions with multiple alternatives considered
-- Decisions that affect future choices
+**MUST create new ADR when:**
+
+✅ **Schema changes** (database, API contracts, data models)
+   - Example: BigQuery schema redesign → ADR-0006
+
+✅ **Technology/library selection** (languages, frameworks, major dependencies)
+   - Example: python-kasa vs tapo library selection
+
+✅ **Architecture changes** (system design, component structure, data flow)
+   - Example: ESP32+GCP migration → ADR-0001
+
+✅ **Infrastructure decisions** (deployment strategy, CI/CD, storage tiers)
+   - Example: Git working_directory strategy → ADR-0003
+
+✅ **Decisions with 3+ alternatives considered** (clear trade-offs)
+   - Example: Single table vs dual table design → ADR-0006
+
+**MUST NOT create ADR for:**
+- Reversible changes in <1 week (code refactoring, variable naming)
+- Obvious choices (standard library selection)
+- Personal preferences (code formatting, style)
+
+**Process (mandatory in PR):**
+
+```
+1. Create ADR file: docs/decisions/YYYY-MM-DD-title.md
+2. Use template.md structure (Status, Context, Alternatives, Decision, Consequences)
+3. Add to docs/decisions/README.md "Active Decisions" list
+4. Include ADR in same PR as implementation
+5. Update docs/architecture/snapshots/ if architecture changes
+```
+
+**Self-check before creating PR:**
+
+```
+[ ] Did I change a schema (database/API)? → ADR required
+[ ] Did I select/replace a library/technology? → ADR required
+[ ] Did I modify system architecture? → ADR required
+[ ] Did I compare 3+ alternatives? → ADR required
+[ ] Is this decision hard to reverse? → ADR required
+```
+
+If any checkbox is checked, create ADR proactively without user request.
 
 ### Tech Stack
 
