@@ -11,16 +11,89 @@ metadata:
 
 AquaPulse: Freshwater aquarium monitoring system
 
-## Language Policy
+## Language Policy (STRICTLY ENFORCED)
+
+### ⚠️ MANDATORY - Absolutely NO Exceptions
+
+**ALWAYS write in English:**
 
 ```
-Code & Comments: English only
-Documentation (docs/*): English
-Agent Rules (.cursor/rules/*): English
-Commit Messages: English preferred (Japanese acceptable)
-Exception: README.ja.md (Japanese version)
-User Communication (this chat): Japanese OK
+✅ All code (Python, MicroPython, JavaScript, etc.)
+✅ All comments in code (inline comments, docstrings, function descriptions)
+✅ All commit messages
+✅ All ADRs (docs/decisions/*)
+✅ All agent rules (.cursor/rules/*)
+✅ All API documentation
+✅ All technical reference documents
 ```
+
+**Before writing ANY file, check:**
+
+```
+[ ] Is this code? → MUST be English
+[ ] Is this a comment in code? → MUST be English
+[ ] Is this a commit message? → MUST be English
+[ ] Is this an ADR (docs/decisions/*)? → MUST be English
+[ ] Is this a rule file (.cursor/rules/*)? → MUST be English
+```
+
+### ✅ MANDATORY - With Documented Exceptions Only
+
+**Documentation (docs/*): English by default**
+
+**Approved exceptions (Japanese allowed):**
+
+```
+1. README.ja.md
+   - Japanese version of main README
+   
+2. docs/guides/aquarium-thermostat-complete-manual.md
+   - User explicitly requested "超初心者向け" Japanese guide
+   - Exception approved: 2026-07-11
+```
+
+**Adding new exceptions:**
+
+```
+To add a new Japanese document:
+1. User MUST explicitly request Japanese
+2. Document reason in this rule file
+3. Use -ja.md suffix for new files (e.g., guide-ja.md)
+4. English version should exist or be planned
+```
+
+**Before writing documentation, check:**
+
+```
+[ ] Is this in docs/*? → Default: English
+[ ] Is this README.ja.md? → Japanese OK
+[ ] Is this aquarium-thermostat-complete-manual.md? → Japanese OK
+[ ] Is this a new file? → English unless user explicitly requests Japanese
+```
+
+### ✅ ALWAYS Allowed in Japanese
+
+```
+User communication (this chat): Japanese OK
+```
+
+### ❌ Common Mistakes to Avoid
+
+```
+✗ Writing Japanese comments in Python code
+✗ Writing Japanese in new documentation without approval
+✗ Mixing English and Japanese in same file (except bilingual docs)
+✗ Assuming "user-facing" means Japanese is OK (still need approval)
+```
+
+### 🔍 Self-Verification Process
+
+**Before every file write/edit:**
+
+1. Check file path
+2. Check approved exceptions list above
+3. If not in exception list → MUST be English
+4. If uncertain → Ask user for clarification
 
 ## Architecture Decision Records (ADR)
 
