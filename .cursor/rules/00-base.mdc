@@ -166,9 +166,11 @@ Infrastructure:
   - GitHub Actions
 
 Languages:
-  - Python (Black + isort)
-  - MicroPython
+  - Python (see 30-python-coding.mdc for standards)
+  - MicroPython (see 31-micropython.mdc for standards)
 ```
+
+**Note:** Detailed coding standards moved to language-specific rule files (30-python-coding.mdc, 31-micropython.mdc)
 
 ### Directory Structure
 
@@ -209,109 +211,6 @@ Prioritize proven implementations:
   - Adopt battle-tested technology
   - Provide reference links
 ```
-
-## Code Conventions
-
-### Python
-
-```
-Formatters:
-  - Black
-  - isort
-
-Style:
-  - Functions: ≤ 50 lines
-  - Classes: ≤ 300 lines
-  - Single Responsibility Principle
-```
-
-### Commit Messages
-
-```
-Conventional Commits format recommended:
-
-feat(scope): add new feature
-fix(scope): bug fix
-docs(scope): documentation
-refactor(scope): refactoring
-test(scope): add tests
-chore(scope): build/config
-
-English preferred, Japanese acceptable
-```
-
-## Documentation Standards
-
-### Diátaxis Framework
-
-Organize docs by user intent:
-
-```
-docs/
-├── tutorials/      # Learning-oriented ("Teach me")
-├── guides/         # Task-oriented ("Show me how")
-├── reference/      # Information-oriented ("What is")
-└── explanation/    # Understanding-oriented ("Why")
-```
-
-### When to Write What
-
-```
-User need → Category
-
-"I want to learn X"          → tutorials/
-"How do I accomplish Y?"     → guides/
-"What's the spec/API?"       → reference/
-"Why this approach?"         → explanation/
-```
-
-### Content Rules
-
-```
-Language: English (code, docs, ADRs, commits)
-Exception: README.ja.md, user chat (Japanese OK)
-
-Style:
-  - Active voice ("Run X" not "X should be run")
-  - Present tense ("Returns" not "Will return")
-  - Short sentences (≤25 words)
-  - No marketing language ("amazing", "powerful")
-  - No AI phrases ("Let's dive in", "In conclusion")
-
-Structure:
-  - H1 title + brief description
-  - Clear sections (H2/H3)
-  - "Next steps" or "Related" at end
-```
-
-### Maintenance
-
-```
-Update docs in same PR as code changes
-
-Archive (don't delete) when:
-  - Content outdated but has historical value
-  - Superseded by new docs
-  - Wrong language (pre-English migration)
-
-Process:
-  1. Move to docs/archive/<category>/
-  2. Create archive/README.md explaining why
-  3. Link to superseding content
-```
-
-### DRY Principle
-
-```
-NG: Duplicate content in multiple files
-OK: Write once, link elsewhere
-
-Example:
-  reference/sensors.md: DS18B20 specs (write once)
-  guides/*.md: Link to reference (don't duplicate)
-```
-
-For detailed guidelines, see: `docs/contributing.md` (future)
 
 ## Absolute Rules
 
