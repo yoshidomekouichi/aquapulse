@@ -135,6 +135,31 @@ See: `docs/decisions/0006-simplified-schema-design.md`
 - OTA updates (Phase 3)
 - Tapo IR remote control for AC (Phase 3)
 
+### Development Environment Strategy
+
+**Phase 1 (Current):**
+- **No Cloud Agent environment setup** - Keep it simple, focus on implementation
+- Use local agent for ESP32 (USB connection required)
+- Use cloud agent opportunistically for GCP tasks (optional)
+- Track dependencies as you go (for future environment setup)
+
+**Phase 1 Completion (2 weeks from now):**
+- Run system for 3-5 days, verify stability
+- Decide: Continue to Phase 2 or stop here?
+- If continuing → Set up Cloud Agent environment (10 minutes with agent-led setup)
+
+**Phase 2+ (Future):**
+- Cloud Agent environment ready (instant startup, 5 seconds)
+- Parallel agent execution for multiple sensors
+- Hybrid approach: Local for ESP32, Cloud for GCP/analysis
+- 5-8 hours saved over Phase 2-3 development
+
+**Why this order:**
+1. Phase 1 is small enough to run efficiently without environment setup
+2. ESP32 work requires local USB connection anyway
+3. Agent-led setup needs a working repo to analyze (Phase 1 provides this)
+4. Environment setup ROI is highest in Phase 2+ (parallel execution, long-running tasks)
+
 ### Recommended Implementation Order
 
 Follow the manual's decoupled structure. You can work on these in parallel or any order:
