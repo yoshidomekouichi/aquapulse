@@ -170,6 +170,8 @@ curl -X POST "https://ingest-e4jnfqozuq-an.a.run.app" \
 - [x] Architecture decision: ESP32 edge thermostat (ADR-0007) → Superseded
 - [x] **MicroPython Tapo control investigation: Not feasible** (ADR-0008)
 - [x] **Phase 1 split decision: Monitoring only + manual fan control** (ADR-0008)
+- [x] **Tapo sensor relocation** (2026-08-02 22:41 JST): Moved from window area to near aquarium for accurate temperature monitoring
+- [x] **Event logging started**: `docs/logs/intervention-events.md` for manual AC/fan control tracking
 
 ### TODO 🔲 (Phase 1a — by 2026-08-08)
 
