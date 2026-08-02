@@ -1,0 +1,50 @@
+[
+  {
+    "name": "timestamp",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED",
+    "description": "Measurement timestamp (UTC)"
+  },
+  {
+    "name": "sensor_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Unique sensor identifier (e.g. ds18b20_001)"
+  },
+  {
+    "name": "sensor_type",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "temperature, tds, ph, room_temperature, room_humidity"
+  },
+  {
+    "name": "location",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "aquarium or room"
+  },
+  {
+    "name": "value",
+    "type": "FLOAT",
+    "mode": "REQUIRED",
+    "description": "Measured value"
+  },
+  {
+    "name": "unit",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "celsius, ppm, pH, percent"
+  },
+  {
+    "name": "device_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Device that collected the reading (e.g. esp32_001)"
+  },
+  {
+    "name": "firmware_version",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Firmware or software version"
+  }
+]

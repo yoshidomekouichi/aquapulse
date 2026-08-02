@@ -1,9 +1,12 @@
 # Implementation Kickoff: Aquarium Thermostat System
 
 **Created:** 2026-08-01  
+**Updated:** 2026-08-02 (architecture pivot — see ADR-0007)  
 **Target Completion:** 2026-08-08 (1 week)  
 **Phase:** Phase 1 - Basic Temperature Monitoring + Fan Control  
-**Status:** 🚀 Ready to Start
+**Status:** 🚀 In Progress — ESP32 edge thermostat adopted
+
+> **New session?** Read [cloud-agent-handoff-2026-08.md](./cloud-agent-handoff-2026-08.md) first.
 
 ---
 
@@ -40,21 +43,28 @@ By 2026-08-08, the system MUST:
 
 ## 🏗️ System Architecture
 
-### Overview
+### Overview (updated 2026-08-02)
 
 ```
 [ESP32 + DS18B20]
-      ↓ WiFi (HTTP POST every 60s)
-[Cloud Functions: ingest]
-      ↓
-[BigQuery: sensor_readings] ← [Grafana: visualization]
-      ↓ Query (every 60s)
-[Cloud Functions: thermostat]
-      ↓ Control command
-[Tapo P300 Smart Plug]
-      ↓ Power
-[12V Cooling Fan]
+      │
+      ├─ WiFi HTTP POST (every 60s)
+      │       ↓
+      │  [Cloud Functions: ingest]
+      │       ↓
+      │  [BigQuery: sensor_readings] ← [Grafana: visualization]
+      │
+      └─ WiFi LAN (same network as Tapo)
+              ↓
+         [Tapo P300 Smart Plug]
+              ↓ Power
+         [12V Cooling Fan]
+              (28°C ON / 26°C OFF — logic on ESP32)
 ```
+
+**Why not Cloud Function thermostat?** GCP cannot reach Tapo private IP (`192.168.x.x`). Verified 2026-08-02. See [ADR-0007](../decisions/0007-esp32-edge-thermostat-phase1.md).
+
+`cloud-functions/thermostat/` remains as reference (python-kasa); **not used in Phase 1 production**.
 
 ### Key Technology Decisions
 
@@ -63,7 +73,7 @@ By 2026-08-08, the system MUST:
 | Microcontroller | ESP32 (MicroPython) | WiFi built-in, Python simplicity |
 | Sensor | DS18B20 (OneWire) | Waterproof, accurate (±0.5°C) |
 | Cloud Platform | GCP (Cloud Functions + BigQuery) | Serverless, cost-effective |
-| Smart Plug | Tapo P300 | Already owned, Python library available |
+| Smart Plug | Tapo P300 | Already owned; **ESP32 controls on LAN** (Phase 1) |
 | Communication | HTTP POST (not MQTT) | **IoT Core retired Feb 2026**, HTTP is simpler |
 | Visualization | Grafana Cloud | Free tier, BigQuery plugin available |
 
@@ -202,12 +212,10 @@ Follow the manual's decoupled structure. You can work on these in parallel or an
    - Note IP address, username, password
    - Test with `python-kasa` library locally
 
-6. **B3 (2nd function):** Deploy `thermostat` Cloud Function (1-2 hours)
-   - Scheduled execution (every 60s)
-   - Query latest temperature from BigQuery
-   - Control Tapo P300 based on thresholds
-   - Record events to `control_events` table
-   - Send LINE notifications
+6. **~~B3 (2nd function): Deploy `thermostat` Cloud Function~~** → **Superseded by ADR-0007**
+   - Deployed once for test; Tapo unreachable from GCP
+   - Phase 1: implement fan control on **ESP32** (MicroPython Tapo TBD)
+   - See [cloud-agent-handoff-2026-08.md](./cloud-agent-handoff-2026-08.md)
 
 #### Track C: Integration
 

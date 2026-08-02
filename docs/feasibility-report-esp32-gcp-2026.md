@@ -24,6 +24,13 @@
 - ESP32から直接Pub/Subに送信できない
 - **解決策あり**（3つの選択肢、後述）
 
+### ⚠️ Addendum (2026-08-02)
+
+**Cloud Functions から Tapo P300（LAN IP）への直接制御は不可** と検証済み。  
+本レポートの「Tapo P300制御 🟢 問題なし」は **同一 LAN 上のエージェント前提** であり、GCP 上の Cloud Function 単体では成立しない。
+
+**Phase 1 採用案:** ESP32 が Tapo を同一 WiFi 上で直接制御。詳細は [ADR-0007](decisions/0007-esp32-edge-thermostat-phase1.md) と [cloud-agent-handoff-2026-08.md](guides/cloud-agent-handoff-2026-08.md)。
+
 ---
 
 ## 📋 詳細調査結果
