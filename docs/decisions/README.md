@@ -25,6 +25,7 @@ Create ADR for decisions that meet these conditions:
 
 ## Active Decisions
 
+- [ADR-0007](0007-esp32-edge-thermostat-phase1.md): ESP32 Edge Thermostat for Phase 1 (Approved 2026-08-02)
 - [ADR-0006](0006-simplified-schema-design.md): Simplified Schema Design for BigQuery Tables (Approved)
 - [ADR-0003](2026-07-05-shell-working-directory.md): Explicit working_directory in Shell tool Git operations (Approved)
 - [ADR-0002](2026-07-05-archive-directory-structure.md): Archive directory structure (Approved)

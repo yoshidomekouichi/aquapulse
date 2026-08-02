@@ -1,0 +1,80 @@
+[
+  {
+    "name": "event_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "UUID v4 event identifier"
+  },
+  {
+    "name": "timestamp",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED",
+    "description": "Event occurrence time (UTC)"
+  },
+  {
+    "name": "event_type",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "automated_thermostat, manual_maintenance, manual_dosing"
+  },
+  {
+    "name": "device_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Device executing the action"
+  },
+  {
+    "name": "action",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "fan_on, fan_off, water_change, etc."
+  },
+  {
+    "name": "action_details",
+    "type": "JSON",
+    "mode": "NULLABLE",
+    "description": "Additional metadata as JSON"
+  },
+  {
+    "name": "trigger_type",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "threshold_exceeded, manual, scheduled, error"
+  },
+  {
+    "name": "trigger_sensor_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Sensor that triggered the action"
+  },
+  {
+    "name": "trigger_value",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Sensor value at trigger time"
+  },
+  {
+    "name": "trigger_threshold",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Threshold that was exceeded"
+  },
+  {
+    "name": "success",
+    "type": "BOOLEAN",
+    "mode": "REQUIRED",
+    "description": "Whether the action succeeded"
+  },
+  {
+    "name": "error_message",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Error message if action failed"
+  },
+  {
+    "name": "duration_ms",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Action execution time in milliseconds"
+  }
+]

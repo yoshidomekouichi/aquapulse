@@ -51,6 +51,16 @@
 
 ---
 
+## Phase 1（ESP32 + GCP）— 2026-08
+
+| ドキュメント | 説明 |
+|--------------|------|
+| [**Cloud Agent 引き継ぎ**](guides/cloud-agent-handoff-2026-08.md) | **新セッションはここから** |
+| [実装キックオフ](guides/implementation-kickoff-2026-08.md) | 期限・タスク・成功基準 |
+| [ADR-0007: ESP32 エッジサーモ](decisions/0007-esp32-edge-thermostat-phase1.md) | CF→Tapo 不可の記録と設計変更 |
+
+---
+
 ## アーカイブ
 
 | フォルダ | 内容 |
