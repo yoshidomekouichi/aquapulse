@@ -2,7 +2,9 @@
 
 ## Status
 
-Approved (2026-08-02)
+Superseded (2026-08-02) → See ADR-0008 for Phase 1 split decision  
+Original approval: 2026-08-02  
+Superseded by: ADR-0008 (Phase 1a: Monitoring only, Phase 1b: Automation post-Obon)
 
 ## Context
 
