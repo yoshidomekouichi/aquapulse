@@ -10,11 +10,13 @@ This memo captures decisions and live state after architecture validation on 202
 
 | Topic | Decision |
 |-------|----------|
-| **Phase 1 fan control** | **ESP32 on home WiFi** controls Tapo P300 directly |
+| **Phase 1a fan control** | **Manual via Tapo app** (alert-driven) |
+| **Phase 1a scope** | **Monitoring only** — ESP32 → ingest → BigQuery → Grafana + Alerts |
 | **GCP role** | **`ingest` only** — telemetry to BigQuery |
 | **GCP `thermostat`** | Deployed for test; **does not work** to Tapo (LAN unreachable) — **not used in Phase 1** |
+| **ESP32 Tapo control** | **Not possible** — MicroPython cannot handle Tapo encryption (TPAP/SPAKE2+) |
 | **Raspberry Pi** | **Not used** (ADR-0001) |
-| **VPN / extra router** | Deferred — cost/complexity; router has no VPN server |
+| **VPN / extra router** | Deferred to Phase 1b (post-Obon) |
 | **Deadline** | 2026-08-08 |
 | **Language** | User prefers **Japanese** explanations |
 
@@ -40,6 +42,20 @@ Result: TimeoutError — "Timed out getting discovery response"
 ```
 
 GCP public cloud **cannot** open connections to private `192.168.x.x` on home LAN.
+
+### MicroPython cannot control Tapo P300
+
+**Finding:** Direct Tapo control from ESP32/MicroPython is **not feasible**.
+
+**Reasons:**
+
+1. **No MicroPython library** — PyPI `tapo` is Python-only (6.5MB Rust binary)
+2. **Complex encryption** — Tapo uses TPAP/SPAKE2+ (requires elliptic curve crypto, not available in MicroPython)
+3. **No implementation examples** — All ESP32+Tapo examples use intermediate relay servers
+
+**Decision:** Phase 1 split into monitoring-only (Phase 1a) + automation later (Phase 1b).
+
+See: [ADR-0008](../decisions/0008-phase1-split-monitoring-only.md)
 
 ### Home network
 
@@ -91,7 +107,7 @@ curl -X POST "https://ingest-e4jnfqozuq-an.a.run.app" \
 
 ---
 
-## Phase 1 target architecture
+## Phase 1a target architecture (updated 2026-08-02)
 
 ```
 ┌─────────────────────────────────────┐
@@ -99,21 +115,30 @@ curl -X POST "https://ingest-e4jnfqozuq-an.a.run.app" \
 │                                     │
 │  ESP32 ──DS18B20── water temp       │
 │    │                                │
-│    ├──HTTP POST──► ingest (GCP)      │
-│    │                 └──► BigQuery  │
-│    │                      └──► Grafana
-│    │                                │
-│    └──LAN────────► Tapo P300        │
-│                      └──► 12V fan   │
-│         (hysteresis on ESP32)       │
+│    └──HTTP POST──► ingest (GCP)     │
+│                      └──► BigQuery  │
+│                           └──► Grafana
+│                                │
+│                                └──► Alerts (≥28°C)
+│                                     └──► Email/LINE
+│                                          │
+│                                          ↓
+│                                      User checks phone
+│                                          │
+│                                          ↓
+│                                      Tapo app (manual)
+│                                          │
+│                                          ↓
+│                                      Tapo P300 ─► Fan
 └─────────────────────────────────────┘
 ```
 
-### Thresholds
+### Thresholds (Alert-based, manual action)
 
-- Fan **ON** when temperature **≥ 28.0°C**
-- Fan **OFF** when temperature **≤ 26.0°C**
-- Measure / act every **~60 seconds**
+- Alert **trigger** when temperature **≥ 28.0°C**
+- User manually turns fan ON via Tapo app
+- Monitor temperature drop
+- User manually turns fan OFF when **≤ 26.0°C**
 
 ---
 
@@ -122,8 +147,9 @@ curl -X POST "https://ingest-e4jnfqozuq-an.a.run.app" \
 | Priority | Path | Purpose |
 |----------|------|---------|
 | 1 | **This file** | Session context |
-| 2 | [ADR-0007](../decisions/0007-esp32-edge-thermostat-phase1.md) | Why ESP32 edge control |
-| 3 | [implementation-kickoff-2026-08.md](./implementation-kickoff-2026-08.md) | Phase 1 tasks & deadline |
+| 2 | [ADR-0008](../decisions/0008-phase1-split-monitoring-only.md) | **Phase 1a: Monitoring only (manual fan control)** |
+| 3 | [ADR-0007](../decisions/0007-esp32-edge-thermostat-phase1.md) | Superseded (ESP32 edge control investigation) |
+| 4 | [implementation-kickoff-2026-08.md](./implementation-kickoff-2026-08.md) | Phase 1 tasks & deadline |
 | 4 | [ADR-0001](../decisions/2026-07-05-migrate-to-esp32-gcp.md) | Why not Raspberry Pi |
 | 5 | `cloud-functions/ingest/main.py` | Deployed ingest code |
 | 6 | `cloud-functions/thermostat/main.py` | Reference only (python-kasa) |
@@ -141,36 +167,38 @@ curl -X POST "https://ingest-e4jnfqozuq-an.a.run.app" \
 - [x] `ingest` deployed and curl-tested
 - [x] `thermostat` deployed; **proved Tapo unreachable from GCP**
 - [x] Router surveyed: no VPN server; port mapping available
-- [x] Architecture decision: ESP32 edge thermostat (ADR-0007)
+- [x] Architecture decision: ESP32 edge thermostat (ADR-0007) → Superseded
+- [x] **MicroPython Tapo control investigation: Not feasible** (ADR-0008)
+- [x] **Phase 1 split decision: Monitoring only + manual fan control** (ADR-0008)
 
-### TODO 🔲 (Phase 1)
+### TODO 🔲 (Phase 1a — by 2026-08-08)
 
-- [ ] **Verify MicroPython can control Tapo P300** (blocker — research first)
 - [ ] ESP32 wiring + DS18B20 read
 - [ ] ESP32 WiFi + POST to `ingest`
-- [ ] ESP32 hysteresis + Tapo fan ON/OFF
-- [ ] Optional: POST `control_events` from ESP32
-- [ ] Grafana dashboard
-- [ ] 3–5 day soak test before 2026-08-08 absence
-- [ ] LINE notify on fan state change (if time permits)
+- [ ] Verify data in BigQuery
+- [ ] Grafana dashboard (temperature panel)
+- [ ] Grafana alert (≥28°C → Email/LINE)
+- [ ] Test alert delivery (heat water or inject test data)
+- [ ] Test remote Tapo app fan control
+- [ ] 3-day continuous monitoring test (99%+ uptime)
 
-### Deferred / Backlog
+### Deferred / Backlog (Phase 1b — post-Obon)
 
-- Cloud Function `thermostat` via VPN (GL.iNet + free VM)
+- Automated fan control (GL.iNet + VPN or alternative) — ADR-0009 (to be written)
 - ESP32 OTA updates ([BACKLOG.md](../../BACKLOG.md))
-- Update `aquarium-thermostat-complete-manual.md` CF sections
+- Update `aquarium-thermostat-complete-manual.md` for Phase 1a scope
 
 ---
 
 ## What changed vs original design
 
-| Original | Phase 1 (current) |
+| Original | Phase 1a (current) |
 |----------|-------------------|
-| ESP32 sends temperature only | ESP32 also controls Tapo |
-| GCP `thermostat` controls fan | **`ingest` only on GCP** |
-| Tapo creds in Secret Manager | Tapo creds on ESP32 (local config) |
-| Change thresholds via env/deploy | USB reflash (or later: config JSON from GCS) |
-| Remote curl fan control | Not in Phase 1 (Tapo app manual OK) |
+| ESP32 sends temperature only | ESP32 sends temperature only (**unchanged**) |
+| GCP `thermostat` controls fan | **No automation** — user controls via Tapo app |
+| Tapo creds in Secret Manager | Tapo creds **stay in Tapo app only** |
+| Change thresholds via env/deploy | Alert thresholds in Grafana (editable) |
+| Remote curl fan control | **Manual Tapo app control** |
 
 **Unchanged:** ingest, BigQuery schema, Grafana data path, ESP32 as sensor platform.
 
@@ -178,20 +206,22 @@ curl -X POST "https://ingest-e4jnfqozuq-an.a.run.app" \
 
 ## Suggested next conversation topics
 
-1. Research: MicroPython / HTTP client for Tapo P300 (replace `python-kasa`)
-2. ESP32 `main.py` structure: measure → decide → act → POST ingest
-3. Where to store WiFi/Tapo secrets on ESP32 (`secrets.py`, gitignored)
+1. ESP32 `main.py` structure: measure → POST ingest (no Tapo control)
+2. Where to store WiFi credentials on ESP32 (`secrets.py`, gitignored)
+3. Grafana alert configuration (Email/LINE integration)
 4. Local test on Mac LAN before mounting behind aquarium
+5. **Post-Obon:** Evaluate Phase 1b automation approach (GL.iNet + VPN or alternative)
 
 ---
 
 ## Copy-paste prompt for Cloud Agent
 
 ```
-AquaPulse Phase 1. Read first:
+AquaPulse Phase 1a (monitoring only). Read first:
 https://github.com/yoshidomekouichi/aquapulse/blob/main/docs/guides/cloud-agent-handoff-2026-08.md
 
-Summary: ESP32 controls Tapo fan on LAN; GCP ingest only. CF thermostat doesn't reach Tapo.
+Summary: ESP32 monitors temperature → Grafana alerts → Manual Tapo app fan control.
+MicroPython Tapo control not feasible (encryption too complex).
 Deadline 2026-08-08. Reply in Japanese. Ask before deploying to GCP.
 ```
 
