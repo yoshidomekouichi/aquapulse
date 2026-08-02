@@ -4,6 +4,27 @@
 
 This memo captures decisions and live state after architecture validation on 2026-08-02. It prevents re-discovering the same Tapo/LAN/GCP issues.
 
+**→ 2026-08-03 追記:** Mac Tapo poller **稼働中**。試行錯誤の全ログは  
+[`docs/operations/tapo-poller-mac-setup-log-2026-08-03.md`](../operations/tapo-poller-mac-setup-log-2026-08-03.md) を読むこと。
+
+---
+
+## LIVE — Mac Tapo poller (2026-08-03)
+
+| Item | Value |
+|------|-------|
+| Status | ✅ Hub + P300 → `ingest` → BigQuery (`device_id=mac_poller_v1`) |
+| Mac WiFi | `aterm-b88a47-2s` (2.4GHz) — **must stay on `-2s`** |
+| H100 hub IP | **192.168.10.110** (`TAPO_HUB_IP` in local `.env`) |
+| P300 IP | **192.168.10.104** (`TAPO_P300_IP`) |
+| Router | Aterm 3000D4AX: mesh **OFF**, secondary `-2s` **network isolation OFF** |
+| Tapo app | 私 → 音声アシスタント → **サードパーティ連携 ON** (required for P300 / TPAP) |
+| Schedule | cron `*/15` → `scripts/run-tapo-poller.sh` |
+| Sleep | `scripts/keep-mac-awake.sh start` (caffeinate); lid close stops poller |
+| Grafana | **Not set up** — data only in BigQuery for now |
+
+**Stale docs warning:** handoff still listed P300 `.101` / hub `.103` — use table above.
+
 ---
 
 ## TL;DR
@@ -67,7 +88,9 @@ See: [ADR-0008](../decisions/0008-phase1-split-monitoring-only.md)
 | IPv4 / IPv6 | Both internet available |
 | VPN server menu | **None** (WireGuard/OpenVPN/Tailscale not built-in) |
 | Port mapping | Available, currently empty |
-| Tapo P300 IP | `192.168.10.101` (Secret Manager: `tapo-p300-ip`) |
+| Tapo P300 IP | **`192.168.10.104`** (local `.env`; Secret Manager `tapo-p300-ip` may still be `.101`) |
+| Tapo H100 hub IP | **`192.168.10.110`** (was `.103` before mesh/off SSID migration) |
+| WiFi SSID (IoT) | **`aterm-b88a47-2s`** (2.4GHz secondary; isolation must be OFF) |
 
 ### Cost options we compared
 
@@ -172,13 +195,18 @@ curl -X POST "https://ingest-e4jnfqozuq-an.a.run.app" \
 - [x] **Phase 1 split decision: Monitoring only + manual fan control** (ADR-0008)
 - [x] **Tapo sensor relocation** (2026-08-02 22:41 JST): Moved from window area to near aquarium for accurate temperature monitoring
 - [x] **Event logging started**: `docs/logs/intervention-events.md` for manual AC/fan control tracking
+- [x] **Mac Tapo poller** — scripts, cron, Hub+P300 → BigQuery (2026-08-03)
+- [x] **Aterm WiFi fix** — mesh off, `-2s` isolation off, all IoT on `-2s` (see setup log)
+- [x] **BigQuery verified** — `mac_poller_v1` room temp/humidity + P300 power_state
 
 ### TODO 🔲 (Phase 1a — by 2026-08-08)
 
 - [ ] ESP32 wiring + DS18B20 read
 - [ ] ESP32 WiFi + POST to `ingest`
-- [ ] Verify data in BigQuery
-- [ ] Grafana dashboard (temperature panel)
+- [ ] Verify **ESP32** data in BigQuery (Tapo path ✅)
+- [ ] **Grafana Cloud + BigQuery** datasource + dashboard (see B5 manual; ~30–45 min)
+- [ ] Update Secret Manager `tapo-p300-ip` → `.104` (if still `.101`)
+- [ ] Router DHCP reservation for `.110` / `.104`
 - [ ] Grafana alert (≥28°C → Email/LINE)
 - [ ] Test alert delivery (heat water or inject test data)
 - [ ] Test remote Tapo app fan control
@@ -219,17 +247,19 @@ curl -X POST "https://ingest-e4jnfqozuq-an.a.run.app" \
 ## Copy-paste prompt for Cloud Agent
 
 ```
-AquaPulse Phase 1a (monitoring only). Read first:
-https://github.com/yoshidomekouichi/aquapulse/blob/main/docs/guides/cloud-agent-handoff-2026-08.md
+AquaPulse Phase 1a. Read in order:
+1. docs/guides/cloud-agent-handoff-2026-08.md
+2. docs/operations/tapo-poller-mac-setup-log-2026-08-03.md  ← try/error log
 
-Summary: ESP32 monitors temperature → Grafana alerts → Manual Tapo app fan control.
-MicroPython Tapo control not feasible (encryption too complex).
-Deadline 2026-08-08. Reply in Japanese. Ask before deploying to GCP.
+LIVE: Mac poller → ingest → BigQuery OK (Hub .110, P300 .104, WiFi -2s).
+TODO next: Grafana Cloud + BQ dashboard, ESP32+DS18B20, alerts ≥28°C.
+Do NOT redo Tapo LAN troubleshooting unless poller breaks.
+Deadline 2026-08-08. Reply in Japanese. Ask before GCP deploy/commit.
 ```
 
 *(Replace branch/path if not yet merged to `main`.)*
 
 ---
 
-**Last updated:** 2026-08-02  
-**Author context:** Desktop Cursor session validated GCP + router + architecture pivot.
+**Last updated:** 2026-08-03  
+**Author context:** Local Mac session — Tapo poller E2E + Aterm WiFi migration complete.
