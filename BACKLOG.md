@@ -12,13 +12,29 @@
 
 ## 🔵 High Priority
 
-### 水温監視 + ファン自動制御（サーモスタット）
+### 水温監視 + ファン自動制御（サーモスタット）- Phase 1: 実装
 
 **Status:** 🔵 Backlog  
 **Estimated:** 3-5 hours  
 **Added:** 2026-07-09  
+**Updated:** 2026-07-12 (Phase 0 完了後)  
 **Deadline:** ⚠️ **2026-08 お盆前（1週間不在）**  
-**Context:** 2026-07-09にファン付け忘れで水温30℃到達。魚は無事だったが危険な状態。お盆で1週間不在のため、自動化が必須  
+**Context:** Phase 0（設計・ドキュメント）完了。実装フェーズに移行  
+
+**Phase 0 完了内容（2026-07-12）:**
+- ✅ BigQuery スキーマ設計（sensor_readings + control_events）
+- ✅ ADR-0006 作成（Simplified Schema Design）
+- ✅ Schema Reference ドキュメント
+- ✅ Architecture Snapshot
+- ✅ Google Forms 手動イベント記録ガイド
+- ✅ 実装マニュアル（4187行）更新
+
+**Related PRs (Phase 0):**
+- PR #55: Schema Design Documentation
+- PR #56: Implementation Manual Update
+- PR #57: ADR Enforcement Rules
+- PR #58: Language Policy Enforcement
+- PR #59: Rules Optimization with Globs  
 
 **Incident Record:**
 - **日時:** 2026-07-09
@@ -332,6 +348,82 @@ Archive (after 1 month) → Remove from file
 
 *(Items completed in the last month)*
 
+### 水温監視 + ファン自動制御 - Phase 0: 設計・ドキュメント化
+
+**Status:** 🟢 Done (PR #55, #56, #57, #58, #59)  
+**Completed:** 2026-07-12  
+**Estimated:** 6-8 hours → **Actual:** 8 hours  
+
+**What was completed:**
+1. **BigQuery Schema Design:**
+   - Separated `sensor_readings` and `control_events` tables
+   - Added `action_details` JSON field for flexible event metadata
+   - Designed for causal inference analysis
+
+2. **Documentation:**
+   - ADR-0006: Simplified Schema Design
+   - Schema Reference with query examples
+   - Architecture Snapshot (2026-07-11)
+   - Google Forms manual event recording guide
+   - Implementation manual (4187 lines) updated for new schema
+
+3. **Rule System Improvements:**
+   - ADR enforcement rules (proactive creation)
+   - Language policy enforcement (strict)
+   - Rules optimization with globs (16% token reduction)
+
+**PRs:**
+- #55: Schema Design Documentation
+- #56: Implementation Manual Update
+- #57: ADR Enforcement Rules
+- #58: Language Policy Enforcement
+- #59: Rules Optimization with Globs
+
+**Impact:**
+- Ready for Phase 1 implementation
+- Complete documentation for user implementation
+- Improved rule system for future development
+
+---
+
+### Cursor Rules System Optimization
+
+**Status:** 🟢 Done (PR #57, #58, #59)  
+**Completed:** 2026-07-12  
+**Estimated:** 2-3 hours → **Actual:** 3 hours  
+
+**What was completed:**
+1. **ADR Enforcement (PR #57):**
+   - Specific triggers with examples
+   - Self-check list before PR
+   - Proactive creation without user prompts
+
+2. **Language Policy (PR #58):**
+   - MANDATORY vs approved exceptions
+   - Self-check lists for code/docs
+   - Clear exception approval process
+
+3. **Globs Optimization (PR #59):**
+   - Separated context-dependent rules
+   - 16% token reduction for core contexts
+   - Proper use of globs feature
+
+**Files created:**
+- 30-python-coding.mdc (Python standards)
+- 31-micropython.mdc (ESP32 standards)
+- 32-documentation.mdc (Doc standards)
+
+**Token reduction:**
+- Always-loaded: 5000 → 4200 tokens (16% reduction)
+- Addresses Claude's review feedback
+
+**Impact:**
+- Agents proactively create ADRs
+- Clear language enforcement
+- Reduced token cost per request
+
+---
+
 <!-- Example:
 ### Task Name
 **Status:** 🟢 Done (PR #XX)
@@ -341,4 +433,4 @@ Archive (after 1 month) → Remove from file
 
 ---
 
-Last updated: 2026-07-09
+Last updated: 2026-07-12
