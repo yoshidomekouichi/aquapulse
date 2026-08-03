@@ -12,13 +12,94 @@
 
 ## 🔵 High Priority
 
+### Cloud Agent環境セットアップ（Phase 1b）
+
+**Status:** 🔵 Backlog  
+**Estimated:** 2-3 hours  
+**Added:** 2026-08-04  
+**Deadline:** ⚠️ **お盆明け（2026-08-16）すぐ**  
+**Context:** Cloud AgentからBigQuery/Grafanaに直接アクセスできるようにし、データ分析・デバッグ・最適化を自動化する  
+
+**Current limitation:**
+- Cloud Agentはコード生成のみ
+- データ確認・分析はユーザーが手動で実施
+- デバッグに時間がかかる（15-20分 → 30秒に短縮可能）
+
+**What to do:**
+
+1. **cursor.com/onboard でCloud Agent環境カスタマイズ**
+   - Google Cloud SDK (`gcloud`, `bq`)
+   - Python libraries (`google-cloud-bigquery`, `google-cloud-storage`)
+   - 認証情報（Secrets経由でService Account JSON）
+
+2. **環境設定ファイル作成**
+   ```yaml
+   # .cursor/cloud-agent-env.yml (例)
+   base_image: python:3.11
+   startup_script: |
+     # Install Google Cloud SDK
+     curl https://sdk.cloud.google.com | bash
+     exec -l $SHELL
+     gcloud components install bq
+     
+     # Install Python dependencies
+     pip install google-cloud-bigquery google-cloud-storage pandas
+     
+     # Setup authentication
+     echo "$GCP_SERVICE_ACCOUNT_KEY" > /tmp/gcp-key.json
+     export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json
+     gcloud auth activate-service-account --key-file=/tmp/gcp-key.json
+     gcloud config set project aquapulse-dev
+   ```
+
+3. **Secrets登録（Cursor Dashboard）**
+   - `GCP_SERVICE_ACCOUNT_KEY`: grafana-bigquery SA のJSON key
+   - または新規SA作成（`cloud-agent@aquapulse-dev`）
+
+4. **動作確認**
+   ```bash
+   # Cloud Agentで実行可能になる
+   bq query --use_legacy_sql=false 'SELECT COUNT(*) FROM aquapulse.sensor_readings'
+   ```
+
+**Benefits after setup:**
+
+| Before（現在） | After（セットアップ後） | 削減率 |
+|-------------|-------------------|--------|
+| データ確認: 2-3分 | 10秒 | **-95%** |
+| デバッグ: 15-20分 | 30秒 | **-97%** |
+| 深い分析: 10-15分 | 15秒 | **-98%** |
+| 異常検知: 不可能 | 自動 | **∞** |
+
+**Enabled features:**
+- ✅ リアルタイムデータ確認・分析
+- ✅ 自動異常検知
+- ✅ 統合デバッグ（BigQuery + Cloud Functions ログ）
+- ✅ 週次レポート自動生成
+- ✅ クエリ最適化・コスト分析
+
+**Cost:**
+- **¥0** (Cursorサブスクリプションに含まれる)
+- BigQueryクエリ増加も無料枠（1TB/月）内
+
+**Prerequisites:**
+- Phase 1a完了（ESP32 + Mac poller稼働中）
+- Grafana-BigQuery接続済み
+
+**Related:**
+- 2026-08-04 会話: 環境セットアップのシミュレーション
+- `docs/operations/grafana-bigquery-setup-2026-08-03.md`
+
+---
+
 ### 水温監視 + ファン自動制御（サーモスタット）
 
 **Status:** 🔵 Backlog  
 **Estimated:** 3-5 hours  
 **Added:** 2026-07-09  
-**Deadline:** ⚠️ **2026-08 お盆前（1週間不在）**  
-**Context:** 2026-07-09にファン付け忘れで水温30℃到達。魚は無事だったが危険な状態。お盆で1週間不在のため、自動化が必須  
+**Updated:** 2026-08-04（Phase 1a完了、Phase 1b監視のみに変更）  
+**Deadline:** ⚠️ **お盆明け（Phase 1b自動化）**  
+**Context:** ADR-0008でPhase 1a（監視のみ）とPhase 1b（自動化）に分割。Phase 1aは手動ファン制御で完了見込み  
 
 **Incident Record:**
 - **日時:** 2026-07-09
@@ -341,4 +422,4 @@ Archive (after 1 month) → Remove from file
 
 ---
 
-Last updated: 2026-07-09
+Last updated: 2026-08-04
