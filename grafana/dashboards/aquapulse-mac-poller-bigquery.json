@@ -1,0 +1,509 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_BIGQUERY",
+      "label": "Google BigQuery",
+      "description": "grafana-bigquery-datasource（Step 3 で作成したもの）",
+      "type": "datasource",
+      "pluginId": "grafana-bigquery-datasource",
+      "pluginName": "Google BigQuery"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "10.0.0"
+    },
+    {
+      "type": "datasource",
+      "id": "grafana-bigquery-datasource",
+      "name": "Google BigQuery",
+      "version": "1.0.0"
+    },
+    {
+      "type": "panel",
+      "id": "stat",
+      "name": "Stat",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "state-timeline",
+      "name": "State timeline",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "table",
+      "name": "Table",
+      "version": ""
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Mac Tapo Poller の BigQuery ダッシュボード。スマートフォン向けに最適化 — 主要 KPI（室温・湿度・ファン）を上部 2 列グリッドに配置し、トレンド・タイムラインは全幅で縦積み。",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null },
+              { "color": "green", "value": 18 },
+              { "color": "yellow", "value": 26 },
+              { "color": "red", "value": 28 }
+            ]
+          },
+          "unit": "celsius"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+          "editorMode": "code",
+          "format": 0,
+          "location": "asia-northeast1",
+          "project": "aquapulse-dev",
+          "rawQuery": true,
+          "rawSql": "SELECT value\nFROM `aquapulse-dev.aquapulse.sensor_readings`\nWHERE device_id = 'mac_poller_v1'\n  AND sensor_type = 'room_temperature'\nORDER BY timestamp DESC\nLIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "title": "室温",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "orange", "value": null },
+              { "color": "green", "value": 40 },
+              { "color": "blue", "value": 70 }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+          "editorMode": "code",
+          "format": 0,
+          "location": "asia-northeast1",
+          "project": "aquapulse-dev",
+          "rawQuery": true,
+          "rawSql": "SELECT value\nFROM `aquapulse-dev.aquapulse.sensor_readings`\nWHERE device_id = 'mac_poller_v1'\n  AND sensor_type = 'room_humidity'\nORDER BY timestamp DESC\nLIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "title": "湿度",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [
+            {
+              "options": {
+                "0": { "color": "dark-gray", "index": 0, "text": "OFF" },
+                "1": { "color": "green", "index": 1, "text": "ON" }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "text", "value": null }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 6 },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+          "editorMode": "code",
+          "format": 0,
+          "location": "asia-northeast1",
+          "project": "aquapulse-dev",
+          "rawQuery": true,
+          "rawSql": "SELECT value\nFROM `aquapulse-dev.aquapulse.sensor_readings`\nWHERE device_id = 'mac_poller_v1'\n  AND sensor_id = 'tapo_p300_fan'\nORDER BY timestamp DESC\nLIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "title": "ファン",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [
+            {
+              "options": {
+                "0": { "color": "dark-gray", "index": 0, "text": "OFF" },
+                "1": { "color": "yellow", "index": 1, "text": "ON" }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "text", "value": null }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 6 },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+          "editorMode": "code",
+          "format": 0,
+          "location": "asia-northeast1",
+          "project": "aquapulse-dev",
+          "rawQuery": true,
+          "rawSql": "SELECT value\nFROM `aquapulse-dev.aquapulse.sensor_readings`\nWHERE device_id = 'mac_poller_v1'\n  AND sensor_id = 'tapo_p300_light'\nORDER BY timestamp DESC\nLIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "title": "照明",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "area" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "transparent", "value": null },
+              { "color": "rgba(255, 100, 100, 0.15)", "value": 28 }
+            ]
+          },
+          "unit": "celsius"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 12 },
+      "id": 5,
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+          "editorMode": "code",
+          "format": 1,
+          "location": "asia-northeast1",
+          "project": "aquapulse-dev",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  timestamp AS time,\n  value AS room_temp\nFROM `aquapulse-dev.aquapulse.sensor_readings`\nWHERE device_id = 'mac_poller_v1'\n  AND sensor_type = 'room_temperature'\n  AND timestamp BETWEEN TIMESTAMP_MILLIS($__from) AND TIMESTAMP_MILLIS($__to)\nORDER BY time ASC",
+          "refId": "A"
+        }
+      ],
+      "title": "室温（24h）",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "continuous-GrYlRd" },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "scheme",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 20 },
+      "id": 6,
+      "options": {
+        "legend": { "calcs": ["mean"], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+          "editorMode": "code",
+          "format": 1,
+          "location": "asia-northeast1",
+          "project": "aquapulse-dev",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  timestamp AS time,\n  value AS humidity\nFROM `aquapulse-dev.aquapulse.sensor_readings`\nWHERE device_id = 'mac_poller_v1'\n  AND sensor_type = 'room_humidity'\n  AND timestamp BETWEEN TIMESTAMP_MILLIS($__from) AND TIMESTAMP_MILLIS($__to)\nORDER BY time ASC",
+          "refId": "A"
+        }
+      ],
+      "title": "湿度（24h）",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineWidth": 1
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": { "color": "#1a2455", "index": 1, "text": "OFF" },
+                "1": { "color": "#73bf69", "index": 0, "text": "ON" }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 28 },
+      "id": 7,
+      "options": {
+        "colWidth": 0.9,
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "rowHeight": 0.9,
+        "showValue": "auto",
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+          "editorMode": "code",
+          "format": 1,
+          "location": "asia-northeast1",
+          "project": "aquapulse-dev",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  timestamp AS time,\n  CAST(ROUND(value) AS INT64) AS state\nFROM `aquapulse-dev.aquapulse.sensor_readings`\nWHERE device_id = 'mac_poller_v1'\n  AND sensor_id = 'tapo_p300_fan'\n  AND timestamp BETWEEN TIMESTAMP_MILLIS($__from) AND TIMESTAMP_MILLIS($__to)\nORDER BY time ASC",
+          "refId": "A"
+        }
+      ],
+      "title": "ファン ON/OFF",
+      "type": "state-timeline"
+    },
+    {
+      "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineWidth": 1
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": { "color": "#1a2455", "index": 1, "text": "OFF" },
+                "1": { "color": "#efd427", "index": 0, "text": "ON" }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 34 },
+      "id": 8,
+      "options": {
+        "colWidth": 0.9,
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "rowHeight": 0.9,
+        "showValue": "auto",
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+          "editorMode": "code",
+          "format": 1,
+          "location": "asia-northeast1",
+          "project": "aquapulse-dev",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  timestamp AS time,\n  CAST(ROUND(value) AS INT64) AS state\nFROM `aquapulse-dev.aquapulse.sensor_readings`\nWHERE device_id = 'mac_poller_v1'\n  AND sensor_id = 'tapo_p300_light'\n  AND timestamp BETWEEN TIMESTAMP_MILLIS($__from) AND TIMESTAMP_MILLIS($__to)\nORDER BY time ASC",
+          "refId": "A"
+        }
+      ],
+      "title": "照明 ON/OFF",
+      "type": "state-timeline"
+    },
+    {
+      "collapsed": true,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 40 },
+      "id": 102,
+      "panels": [],
+      "title": "詳細データ（タップで展開）",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "inspect": false },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "value" },
+            "properties": [{ "id": "decimals", "value": 1 }]
+          }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 41 },
+      "id": 9,
+      "options": {
+        "cellHeight": "sm",
+        "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "time" }]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "grafana-bigquery-datasource", "uid": "${DS_BIGQUERY}" },
+          "editorMode": "code",
+          "format": 0,
+          "location": "asia-northeast1",
+          "project": "aquapulse-dev",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  timestamp AS time,\n  sensor_id,\n  sensor_type,\n  value,\n  unit\nFROM `aquapulse-dev.aquapulse.sensor_readings`\nWHERE device_id = 'mac_poller_v1'\n  AND timestamp BETWEEN TIMESTAMP_MILLIS($__from) AND TIMESTAMP_MILLIS($__to)\nORDER BY timestamp DESC\nLIMIT 200",
+          "refId": "A"
+        }
+      ],
+      "title": "直近データ（生ログ）",
+      "type": "table"
+    }
+  ],
+  "refresh": "5m",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["aquapulse", "mac-poller", "bigquery", "phase1a", "mobile"],
+  "templating": { "list": [] },
+  "time": { "from": "now-24h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "AquaPulse Mac Poller",
+  "uid": "aquapulse-mac-poller-bq",
+  "version": 3,
+  "weekStart": ""
+}

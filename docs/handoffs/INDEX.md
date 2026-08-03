@@ -37,13 +37,13 @@ handoffs/
 
 | 作成日 | 送信元→送信先 | タスク概要 | 優先度 | ステータス | ファイル |
 |--------|-------------|----------|--------|----------|---------|
-| 2026-08-03 | Cloud→Local | Tapo Poller 実装 | 🔴 High | 🟢 In Progress | [cloud-to-local-tapo-poller-20260803.md](active/cloud-to-local-tapo-poller-20260803.md) |
+| 2026-08-04 | Local→Cloud | Grafana完了→アラート+ESP32 | 🔴 High | 🟢 In Progress | [local-to-cloud-grafana-alert-esp32-20260804.md](active/local-to-cloud-grafana-alert-esp32-20260804.md) |
 
 ## Recently Completed ✅ (Last 3 months)
 
 | 完了日 | 送信元→送信先 | タスク概要 | 成功/失敗 | 学び | ファイル |
 |--------|-------------|----------|----------|------|---------|
-| - | - | - | - | - | - |
+| 2026-08-04 | Cloud→Local | Tapo Poller 実装 | ✅ 成功 | Aterm `-2s` 分離OFF、P300 TPAP はサードパーティ連携必須 | [cloud-to-local-tapo-poller-20260803.md](completed/2026-08/cloud-to-local-tapo-poller-20260803.md) |
 
 ## Archive 📦
 

@@ -21,7 +21,7 @@ This memo captures decisions and live state after architecture validation on 202
 | Tapo app | 私 → 音声アシスタント → **サードパーティ連携 ON** (required for P300 / TPAP) |
 | Schedule | cron `*/15` → `scripts/run-tapo-poller.sh` |
 | Sleep | `scripts/keep-mac-awake.sh start` (caffeinate); lid close stops poller |
-| Grafana | **Not set up** — data only in BigQuery for now |
+| Grafana | ✅ **Cloud + BigQuery datasource + dashboard v3**（`aquapulse-mac-poller-bq`） |
 
 **Stale docs warning:** handoff still listed P300 `.101` / hub `.103` — use table above.
 
@@ -198,16 +198,19 @@ curl -X POST "https://ingest-e4jnfqozuq-an.a.run.app" \
 - [x] **Mac Tapo poller** — scripts, cron, Hub+P300 → BigQuery (2026-08-03)
 - [x] **Aterm WiFi fix** — mesh off, `-2s` isolation off, all IoT on `-2s` (see setup log)
 - [x] **BigQuery verified** — `mac_poller_v1` room temp/humidity + P300 power_state
+- [x] **Grafana Cloud** — BigQuery datasource + dashboard v3 (2026-08-04)
+  - `grafana/dashboards/aquapulse-mac-poller-bigquery.json`
+  - Setup: `docs/operations/grafana-bigquery-setup-2026-08-03.md`
+  - Session handoff: `docs/guides/handoff-2026-08-04.md`
 
 ### TODO 🔲 (Phase 1a — by 2026-08-08)
 
 - [ ] ESP32 wiring + DS18B20 read
 - [ ] ESP32 WiFi + POST to `ingest`
 - [ ] Verify **ESP32** data in BigQuery (Tapo path ✅)
-- [ ] **Grafana Cloud + BigQuery** datasource + dashboard (see B5 manual; ~30–45 min)
+- [ ] **Grafana alert** (≥28°C → Email/LINE) — dashboard ✅, alert 🔲
 - [ ] Update Secret Manager `tapo-p300-ip` → `.104` (if still `.101`)
 - [ ] Router DHCP reservation for `.110` / `.104`
-- [ ] Grafana alert (≥28°C → Email/LINE)
 - [ ] Test alert delivery (heat water or inject test data)
 - [ ] Test remote Tapo app fan control
 - [ ] 3-day continuous monitoring test (99%+ uptime)
@@ -252,7 +255,9 @@ AquaPulse Phase 1a. Read in order:
 2. docs/operations/tapo-poller-mac-setup-log-2026-08-03.md  ← try/error log
 
 LIVE: Mac poller → ingest → BigQuery OK (Hub .110, P300 .104, WiFi -2s).
-TODO next: Grafana Cloud + BQ dashboard, ESP32+DS18B20, alerts ≥28°C.
+Grafana Cloud + BQ dashboard v3 OK (2026-08-04).
+TODO next: Grafana alert ≥28°C, ESP32+DS18B20, 3-day monitoring test.
+Read docs/handoffs/INDEX.md → active/local-to-cloud-grafana-alert-esp32-20260804.md
 Do NOT redo Tapo LAN troubleshooting unless poller breaks.
 Deadline 2026-08-08. Reply in Japanese. Ask before GCP deploy/commit.
 ```
@@ -261,5 +266,5 @@ Deadline 2026-08-08. Reply in Japanese. Ask before GCP deploy/commit.
 
 ---
 
-**Last updated:** 2026-08-03  
-**Author context:** Local Mac session — Tapo poller E2E + Aterm WiFi migration complete.
+**Last updated:** 2026-08-04  
+**Author context:** Grafana Cloud E2E complete; dashboard v3 on mobile.
